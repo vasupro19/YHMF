@@ -1,203 +1,194 @@
-import { alpha } from '@mui/material/styles';
-import { Alert, Avatar, Box, Button, Card, CardContent, Chip, Divider, Grid, List, ListItem, ListItemText, Skeleton, Stack, Tooltip, Typography } from '@mui/material';
-import KingBedOutlinedIcon from '@mui/icons-material/KingBedOutlined';
-import LoginIcon from '@mui/icons-material/Login';
-import LogoutIcon from '@mui/icons-material/Logout';
-import HotelOutlinedIcon from '@mui/icons-material/HotelOutlined';
-import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
+import { Alert, Box, Button, Grid, LinearProgress, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { Link, Navigate } from 'react-router-dom';
+import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { clients, users } from 'api';
 import { useAuth } from 'context/Auth';
 import useAsync from 'hooks/useAsync';
 import useHotel from 'hooks/useHotel';
 import PageHeader from 'components/PageHeader';
+import Panel, { KpiStrip } from 'components/Panel';
+import { T } from 'components/Theme';
 import { HK_STATUSES } from 'utils/constants';
-import { formatDate, initials, inr, weekdayShort } from 'utils/format';
+import { formatDate, inr, weekdayShort } from 'utils/format';
 
-const Stat = ({ icon, label, value, color = 'primary', loading, to, hint }) => (
-    <Card sx={{ height: '100%', position: 'relative', overflow: 'hidden', transition: 'transform .15s, box-shadow .15s', '&:hover': to ? { transform: 'translateY(-2px)', boxShadow: 3 } : undefined }}>
-        <Box sx={{ position: 'absolute', inset: '0 auto 0 0', width: 4, bgcolor: `${color}.main` }} />
-        <CardContent component={to ? Link : 'div'} to={to} sx={{ display: 'flex', alignItems: 'center', gap: 2, color: 'inherit', textDecoration: 'none', '&:last-child': { pb: 2 }, py: 2.25 }}>
-            <Box sx={(t) => ({ width: 48, height: 48, borderRadius: '14px', display: 'grid', placeItems: 'center', bgcolor: alpha(t.palette[color].main, 0.14), color: `${color}.main`, flexShrink: 0 })}>{icon}</Box>
-            <Box sx={{ minWidth: 0 }}>
-                <Typography variant="body2" color="text.secondary">{label}</Typography>
-                {loading ? <Skeleton width={56} height={38} /> : <Typography variant="h4" sx={{ lineHeight: 1.2 }}>{value}</Typography>}
-                {hint && <Typography variant="caption" color="text.secondary">{hint}</Typography>}
-            </Box>
-        </CardContent>
-    </Card>
-);
-
-// circular occupancy gauge
-const Gauge = ({ percent }) => {
-    const r = 52;
-    const c = 2 * Math.PI * r;
-    return (
-        <Box sx={{ position: 'relative', width: 132, height: 132, flexShrink: 0 }}>
-            <Box component="svg" viewBox="0 0 132 132" sx={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="66" cy="66" r={r} fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth="11" />
-                <circle cx="66" cy="66" r={r} fill="none" stroke="#e5b45a" strokeWidth="11" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c - (c * Math.min(percent, 100)) / 100} style={{ transition: 'stroke-dashoffset .6s ease' }} />
-            </Box>
-            <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
-                <Box><Typography sx={{ fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{percent}%</Typography><Typography variant="caption" sx={{ opacity: 0.7 }}>tonight</Typography></Box>
-            </Box>
-        </Box>
-    );
-};
-
-const greeting = () => {
-    const h = new Date().getHours();
-    return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-};
+const longDate = (ymd) => (ymd ? new Date(`${ymd}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '');
 
 const AdminDashboard = () => {
+    const navigate = useNavigate();
     const c = useAsync(() => clients.list());
     const u = useAsync(() => users.list());
-    const recent = [...c.data].sort((a, b) => b.id - a.id).slice(0, 6);
+    const recent = [...c.data].sort((a, b) => b.id - a.id).slice(0, 8);
 
     return (
         <>
-            <PageHeader title="Overview" subtitle="Every client on the platform" actions={<Button component={Link} to="/master/client" variant="contained" startIcon={<AddIcon />}>New client</Button>} />
-            <Grid container spacing={2.5}>
-                <Grid item xs={12} sm={6}>
-                    <Stat icon={<HotelOutlinedIcon />} label="Clients" value={c.data.length} loading={c.loading} to="/master/client" />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                    <Stat icon={<PeopleAltOutlinedIcon />} label="Users" value={u.data.length} color="secondary" loading={u.loading} to="/master/user" />
-                </Grid>
-                <Grid item xs={12}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6">Recently added clients</Typography>
-                            <List disablePadding>
-                                {recent.map((x) => (
-                                    <ListItem key={x.id} divider disableGutters>
-                                        <ListItemText primary={x.name} secondary={`${x.email} · ${x.phoneNumber}`} />
-                                    </ListItem>
-                                ))}
-                                {!c.loading && recent.length === 0 && <Typography color="text.secondary" sx={{ py: 3 }}>No clients yet.</Typography>}
-                            </List>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
+            <PageHeader title="Overview" subtitle="Hotels and users on the YHM platform" actions={<Button component={Link} to="/master/client" variant="contained" startIcon={<AddIcon />}>Register hotel</Button>} />
+            <KpiStrip
+                loading={c.loading || u.loading}
+                items={[
+                    { label: 'Hotels', value: c.data.length, sub: 'registered workspaces', onClick: () => navigate('/master/client') },
+                    { label: 'Users', value: u.data.length, sub: 'across all hotels', onClick: () => navigate('/master/user') },
+                    { label: 'Active users', value: u.data.filter((x) => x.active).length, sub: 'can sign in' }
+                ]}
+            />
+            <Panel title="Recently registered hotels" action={<Button component={Link} to="/master/client" size="small" color="inherit">View all</Button>} padded={false} sx={{ mt: 2 }}>
+                <Table size="small">
+                    <TableHead><TableRow><TableCell>Hotel</TableCell><TableCell>Login email</TableCell><TableCell>Phone</TableCell><TableCell>GSTIN</TableCell></TableRow></TableHead>
+                    <TableBody>
+                        {recent.map((x) => (
+                            <TableRow key={x.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate('/master/client')}>
+                                <TableCell sx={{ fontWeight: 600 }}>{x.name}</TableCell>
+                                <TableCell>{x.email}</TableCell>
+                                <TableCell>{x.phoneNumber || '—'}</TableCell>
+                                <TableCell>{x.gst || '—'}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+                {!c.loading && recent.length === 0 && <Typography sx={{ p: 3, color: T.ink2, fontSize: 13 }}>No hotels yet. Use Register hotel to add the first one.</Typography>}
+            </Panel>
         </>
     );
 };
 
+// compact arrivals / departures list
+const MovementTable = ({ rows, loading, empty, navigate, dateLabel }) =>
+    loading ? (
+        <Box sx={{ p: 2 }}><Skeleton /><Skeleton /><Skeleton width="60%" /></Box>
+    ) : rows.length === 0 ? (
+        <Typography sx={{ px: 2, py: 3, fontSize: 13, color: T.ink3 }}>{empty}</Typography>
+    ) : (
+        <Table size="small">
+            <TableHead><TableRow><TableCell>Booking</TableCell><TableCell>Guest</TableCell><TableCell>Room</TableCell><TableCell align="right">{dateLabel}</TableCell></TableRow></TableHead>
+            <TableBody>
+                {rows.map((b) => (
+                    <TableRow key={b.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/hotel/bookings/${b.id}`)}>
+                        <TableCell sx={{ color: T.ink2 }}>{b.bookingNumber}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{b.customerName}</TableCell>
+                        <TableCell>{b.roomNumber}</TableCell>
+                        <TableCell align="right" sx={{ color: T.ink2 }}>{formatDate(b.checkOut)}</TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+    );
+
 const WorkspaceDashboard = () => {
-    const { user, accessibleUrls } = useAuth();
+    const { accessibleUrls } = useAuth();
     const { api } = useHotel();
+    const navigate = useNavigate();
     const hotelOn = accessibleUrls.includes('/hotel/bookings');
     const d = useAsync(() => api.dashboard(), { initial: null, enabled: hotelOn });
     const data = d.data;
     if (data?.needsSetup && accessibleUrls.includes('/hotel/settings')) return <Navigate to="/setup" replace />;
 
-    const bookingList = (title, rows, empty, accent) => (
-        <Card sx={{ height: '100%' }}>
-            <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="h6">{title}</Typography>
-                    <Chip size="small" label={rows.length} color={accent} />
-                </Box>
-                {d.loading ? <Skeleton height={80} /> : rows.length === 0 ? (
-                    <Typography color="text.secondary" sx={{ py: 3 }}>{empty}</Typography>
-                ) : (
-                    <List disablePadding>
-                        {rows.map((b) => (
-                            <ListItem key={b.id} divider disableGutters component={Link} to={`/hotel/bookings/${b.id}`} sx={{ color: 'inherit', textDecoration: 'none', gap: 1.5, '&:hover': { bgcolor: 'action.hover' }, borderRadius: 1.5, px: 0.5 }}>
-                                <Avatar sx={(t) => ({ width: 38, height: 38, fontSize: 13, fontWeight: 700, bgcolor: alpha(t.palette[accent].main, 0.16), color: `${accent}.main` })}>{initials(b.customerName)}</Avatar>
-                                <ListItemText primary={b.customerName} secondary={`${b.bookingNumber} · until ${formatDate(b.checkOut)}`} primaryTypographyProps={{ fontWeight: 600 }} />
-                                <Chip size="small" variant="outlined" label={`Room ${b.roomNumber}`} />
-                            </ListItem>
-                        ))}
-                    </List>
-                )}
-            </CardContent>
-        </Card>
-    );
-
+    const loading = d.loading || !data;
     const free = data ? Math.max(data.rooms - data.occupiedTonight, 0) : 0;
+    const hkTotal = data ? HK_STATUSES.reduce((s, x) => s + (data.housekeeping[x.id] || 0), 0) : 0;
+    const money = data && data.outstanding !== null;
 
     return (
         <>
-            {!hotelOn && <Alert severity="info" sx={{ mb: 2 }}>Hotel screens aren't enabled for your account.</Alert>}
+            <PageHeader
+                title="Today"
+                subtitle={data ? longDate(data.today) : ' '}
+                actions={
+                    hotelOn && (
+                        <>
+                            <Button component={Link} to="/hotel/calendar" variant="outlined" color="inherit" startIcon={<CalendarMonthOutlinedIcon />}>Room calendar</Button>
+                            <Button component={Link} to="/hotel/bookings" variant="outlined" color="inherit">All bookings</Button>
+                        </>
+                    )
+                }
+            />
+            {!hotelOn && <Alert severity="info" sx={{ mb: 2 }}>Front-desk screens aren't enabled for your account. Ask your hotel administrator for access.</Alert>}
             {data?.needsSetup && <Alert severity="info" sx={{ mb: 2 }}>This hotel hasn't been set up yet. Ask the owner to finish the setup.</Alert>}
+            {data?.pendingBookings > 0 && (
+                <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" component={Link} to="/hotel/bookings">Review</Button>}>
+                    {data.pendingBookings} booking{data.pendingBookings > 1 ? 's are' : ' is'} on hold and need{data.pendingBookings > 1 ? '' : 's'} confirming.
+                </Alert>
+            )}
+
             {hotelOn && (
-                <Grid container spacing={2.5}>
-                    <Grid item xs={12}>
-                        <Card sx={{ border: 0, color: '#fff', background: 'radial-gradient(600px 260px at 90% 0%, rgba(229,180,90,.28) 0%, transparent 60%), linear-gradient(135deg, #1f3a73 0%, #10234a 100%)' }}>
-                            <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 3, flexWrap: 'wrap', p: { xs: 3, sm: 4 } }}>
-                                <Box sx={{ minWidth: 240 }}>
-                                    <Typography sx={{ opacity: 0.75 }}>{data ? formatDate(data.today) : ''}</Typography>
-                                    <Typography variant="h4" sx={{ mt: 0.5 }}>{greeting()}, {user.name.split(' ')[0]}</Typography>
-                                    <Typography sx={{ opacity: 0.75, mt: 1, maxWidth: 440 }}>
-                                        {data ? `${data.arrivals.length} arriving, ${data.departures.length} leaving and ${data.inHouseCount} in house. ${free} of ${data.rooms} rooms free tonight.` : 'Loading today’s picture…'}
-                                    </Typography>
-                                    <Stack direction="row" spacing={1.25} sx={{ mt: 2.5, flexWrap: 'wrap', rowGap: 1 }}>
-                                        <Button component={Link} to="/hotel/calendar" variant="contained" color="secondary" startIcon={<AddIcon />}>New booking</Button>
-                                        <Button component={Link} to="/hotel/bookings" sx={{ color: '#fff', borderColor: 'rgba(255,255,255,.35)', '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,.08)' } }} variant="outlined">All bookings</Button>
-                                    </Stack>
-                                </Box>
-                                {data && <Gauge percent={data.occupancyPercent} />}
-                            </CardContent>
-                        </Card>
-                    </Grid>
+                <>
+                    <KpiStrip
+                        loading={loading}
+                        items={[
+                            { label: 'Occupancy tonight', value: `${data?.occupancyPercent ?? 0}%`, sub: data ? `${data.occupiedTonight} of ${data.rooms} rooms sold` : '', color: T.brand, onClick: () => navigate('/hotel/calendar') },
+                            { label: 'Arrivals', value: data?.arrivals.length, sub: 'due to check in today', onClick: () => navigate('/hotel/bookings') },
+                            { label: 'Departures', value: data?.departures.length, sub: 'due to check out', onClick: () => navigate('/hotel/bookings') },
+                            { label: 'In house', value: data?.inHouseCount, sub: 'stays checked in', onClick: () => navigate('/hotel/bookings') },
+                            { label: 'Vacant tonight', value: free, sub: 'rooms still to sell', onClick: () => navigate('/hotel/calendar') },
+                            { label: 'Rooms to clean', value: data?.housekeeping?.DIRTY || 0, sub: `of ${hkTotal} in service`, color: (data?.housekeeping?.DIRTY || 0) > 0 ? T.warning : undefined, onClick: () => navigate('/hotel/rooms') }
+                        ]}
+                    />
 
-                    <Grid item xs={12} sm={6} lg={3}><Stat icon={<LoginIcon />} label="Arriving today" value={data?.arrivals.length} loading={d.loading} color="info" to="/hotel/bookings" /></Grid>
-                    <Grid item xs={12} sm={6} lg={3}><Stat icon={<LogoutIcon />} label="Leaving today" value={data?.departures.length} loading={d.loading} color="warning" to="/hotel/bookings" /></Grid>
-                    <Grid item xs={12} sm={6} lg={3}><Stat icon={<PeopleAltOutlinedIcon />} label="In house" value={data?.inHouseCount} loading={d.loading} color="success" to="/hotel/bookings" /></Grid>
-                    <Grid item xs={12} sm={6} lg={3}><Stat icon={<KingBedOutlinedIcon />} label="Free tonight" value={data ? `${free}` : ''} hint={data ? `of ${data.rooms} rooms` : ''} loading={d.loading} color="secondary" to="/hotel/calendar" /></Grid>
+                    <Grid container spacing={2} sx={{ mt: 0 }}>
+                        <Grid item xs={12} lg={6}>
+                            <Panel title="Arrivals" subtitle="Confirmed and on-hold bookings arriving today" padded={false} sx={{ height: '100%' }} action={<Typography className="num" sx={{ fontSize: 12.5, color: T.ink3 }}>{data?.arrivals.length ?? ''}</Typography>}>
+                                <MovementTable rows={data?.arrivals || []} loading={loading} empty="No arrivals expected today." navigate={navigate} dateLabel="Leaves" />
+                            </Panel>
+                        </Grid>
+                        <Grid item xs={12} lg={6}>
+                            <Panel title="Departures" subtitle="Checked-in guests due out today or overdue" padded={false} sx={{ height: '100%' }} action={<Typography className="num" sx={{ fontSize: 12.5, color: T.ink3 }}>{data?.departures.length ?? ''}</Typography>}>
+                                <MovementTable rows={data?.departures || []} loading={loading} empty="No departures due today." navigate={navigate} dateLabel="Due out" />
+                            </Panel>
+                        </Grid>
 
-                    <Grid item xs={12} md={6}>{bookingList('Arrivals today', data?.arrivals || [], 'No arrivals today.', 'info')}</Grid>
-                    <Grid item xs={12} md={6}>{bookingList('Departures today', data?.departures || [], 'No one is due to leave today.', 'warning')}</Grid>
-
-                    <Grid item xs={12} md={7}>
-                        <Card sx={{ height: '100%' }}>
-                            <CardContent>
-                                <Typography variant="h6">Next 7 nights</Typography>
-                                <Typography variant="body2" color="text.secondary">Share of rooms booked each night</Typography>
-                                {d.loading ? <Skeleton height={140} /> : (
-                                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end', mt: 2.5 }}>
-                                        {(data?.next7Days || []).map((x, i) => (
-                                            <Tooltip key={x.date} title={`${x.occupied} of ${data.rooms} rooms booked`}>
-                                                <Box sx={{ flex: 1, textAlign: 'center' }}>
-                                                    <Typography variant="caption" sx={{ fontWeight: 700 }}>{x.percent}%</Typography>
-                                                    <Box sx={{ height: 110, display: 'flex', alignItems: 'flex-end' }}>
-                                                        <Box sx={(t) => ({ width: '100%', height: `${Math.max(x.percent, 4)}%`, borderRadius: '8px 8px 4px 4px', background: i === 0 ? `linear-gradient(180deg, ${t.palette.secondary.main}, ${alpha(t.palette.secondary.main, 0.6)})` : `linear-gradient(180deg, ${t.palette.primary.main}, ${alpha(t.palette.primary.main, 0.45)})`, opacity: x.percent ? 1 : 0.35 })} />
+                        <Grid item xs={12} lg={money ? 7 : 8}>
+                            <Panel title="Occupancy forecast" subtitle="Rooms sold for the next 7 nights" sx={{ height: '100%' }}>
+                                {loading ? <Skeleton variant="rectangular" height={150} /> : (
+                                    <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-end', height: 170 }}>
+                                        {data.next7Days.map((x, i) => (
+                                            <Tooltip key={x.date} title={`${formatDate(x.date)}: ${x.occupied} of ${data.rooms} rooms`}>
+                                                <Box sx={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: 0.5 }}>
+                                                    <Typography className="num" sx={{ fontSize: 12, fontWeight: 600, color: i === 0 ? T.brand : T.ink2 }}>{x.percent}%</Typography>
+                                                    <Box sx={{ width: '100%', maxWidth: 56, flex: 1, display: 'flex', alignItems: 'flex-end', bgcolor: T.subtle, borderRadius: '3px', border: `1px solid ${T.line}` }}>
+                                                        <Box sx={{ width: '100%', height: `${Math.max(x.percent, 2)}%`, bgcolor: i === 0 ? T.brand : '#B7848B', borderRadius: '2px' }} />
                                                     </Box>
-                                                    <Typography variant="caption" color={i === 0 ? 'secondary.main' : 'text.secondary'} sx={{ fontWeight: i === 0 ? 700 : 400 }}>{i === 0 ? 'Today' : `${weekdayShort(x.date)} ${Number(x.date.slice(8))}`}</Typography>
+                                                    <Typography sx={{ fontSize: 11.5, color: i === 0 ? T.ink : T.ink3, fontWeight: i === 0 ? 600 : 400 }}>{i === 0 ? 'Tonight' : `${weekdayShort(x.date)} ${Number(x.date.slice(8))}`}</Typography>
                                                 </Box>
                                             </Tooltip>
                                         ))}
                                     </Box>
                                 )}
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                    <Grid item xs={12} md={5}>
-                        <Card sx={{ height: '100%' }}>
-                            <CardContent>
-                                <Typography variant="h6" sx={{ mb: 1 }}>{data?.outstanding === null ? 'Rooms' : 'This month'}</Typography>
-                                {d.loading ? <Skeleton height={140} /> : (<>
-                                    {data.outstanding !== null && (<>
-                                        {[['Room revenue', data.roomRevenueThisMonth], ['Payments received', data.paymentsThisMonth]].map(([l, v]) => (
-                                            <Box key={l} sx={{ display: 'flex', justifyContent: 'space-between', py: 1, borderBottom: 1, borderColor: 'divider' }}><Typography color="text.secondary">{l}</Typography><Typography sx={{ fontWeight: 700 }}>{inr(v)}</Typography></Box>
+                            </Panel>
+                        </Grid>
+
+                        <Grid item xs={12} lg={money ? 5 : 4}>
+                            <Box sx={{ display: 'grid', gap: 2, height: '100%' }}>
+                                {money && (
+                                    <Panel title="Month to date" action={<Button component={Link} to="/hotel/reports" size="small" color="inherit">Reports</Button>} padded={false}>
+                                        {[
+                                            ['Room revenue', inr(data.roomRevenueThisMonth)],
+                                            ['Payments received', inr(data.paymentsThisMonth)],
+                                            ['Outstanding from guests', inr(data.outstanding), data.outstanding > 0 ? T.error : T.success]
+                                        ].map(([l, v, color]) => (
+                                            <Box key={l} sx={{ display: 'flex', justifyContent: 'space-between', px: 2, py: 1.1, borderBottom: `1px solid ${T.line}`, '&:last-child': { borderBottom: 0 } }}>
+                                                <Typography sx={{ fontSize: 13, color: T.ink2 }}>{l}</Typography>
+                                                <Typography className="num" sx={{ fontSize: 13, fontWeight: 600, color }}>{v}</Typography>
+                                            </Box>
                                         ))}
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}><Typography color="text.secondary">Still owed by guests</Typography><Typography sx={{ fontWeight: 700 }} color={data.outstanding > 0 ? 'error.main' : 'success.main'}>{inr(data.outstanding)}</Typography></Box>
-                                        <Divider sx={{ my: 1.5 }} />
-                                    </>)}
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Housekeeping</Typography>
-                                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                        {HK_STATUSES.map((s) => <Chip key={s.id} component={Link} to="/hotel/rooms" clickable label={`${data.housekeeping[s.id] || 0} ${s.name.toLowerCase()}`} color={s.color} variant="outlined" />)}
-                                    </Box>
-                                    {data.pendingBookings > 0 && <Alert severity="warning" sx={{ mt: 2 }}>{data.pendingBookings} booking(s) are on hold and need confirming.</Alert>}
-                                </>)}
-                            </CardContent>
-                        </Card>
+                                    </Panel>
+                                )}
+                                <Panel title="Housekeeping" action={<Button component={Link} to="/hotel/rooms" size="small" color="inherit">Rooms</Button>}>
+                                    {loading ? <Skeleton /> : HK_STATUSES.map((s) => {
+                                        const n = data.housekeeping[s.id] || 0;
+                                        return (
+                                            <Box key={s.id} sx={{ mb: 1.25, '&:last-child': { mb: 0 } }}>
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                                    <Typography sx={{ fontSize: 12.5, color: T.ink2 }}>{s.name}</Typography>
+                                                    <Typography className="num" sx={{ fontSize: 12.5, fontWeight: 600 }}>{n}</Typography>
+                                                </Box>
+                                                <LinearProgress variant="determinate" value={hkTotal ? (n / hkTotal) * 100 : 0} color={s.color} sx={{ height: 5 }} />
+                                            </Box>
+                                        );
+                                    })}
+                                </Panel>
+                            </Box>
+                        </Grid>
                     </Grid>
-                </Grid>
+                </>
             )}
         </>
     );
@@ -206,7 +197,7 @@ const WorkspaceDashboard = () => {
 const Dashboard = () => {
     const { isAdmin, user } = useAuth();
     if (isAdmin) return <AdminDashboard />;
-    if (!user.clientId) return <PageHeader title="Dashboard" subtitle="Your account isn't linked to a client yet." />;
+    if (!user.clientId) return <PageHeader title="Today" subtitle="Your account isn't linked to a hotel yet." />;
     return <WorkspaceDashboard />;
 };
 

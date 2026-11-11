@@ -36,7 +36,7 @@ export const ICONS = {
 
 export const iconFor = (url) => ICONS[url] || CircleOutlinedIcon;
 
-export const GROUP_LABELS = { frontdesk: 'Front desk', property: 'Property', people: 'People', reports: 'Insights', master: 'Setup' };
+export const GROUP_LABELS = { frontdesk: 'Front desk', property: 'Property', people: 'People', reports: 'Reports', master: 'Administration' };
 export const GROUP_ORDER = ['frontdesk', 'property', 'people', 'reports', 'master'];
 
 export const TITLES = {

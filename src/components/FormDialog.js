@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Grid, IconButton, MenuItem, Switch, TextField, Typography, useMediaQuery } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { Alert, Box, Button, CircularProgress, DialogActions, DialogContent, Drawer, FormControlLabel, Grid, IconButton, MenuItem, Switch, TextField, Typography } from '@mui/material';
+import { T } from './Theme';
 import CloseIcon from '@mui/icons-material/Close';
 import { Formik } from 'formik';
 import AttachmentsField from './AttachmentsField';
@@ -10,9 +10,8 @@ import AttachmentsField from './AttachmentsField';
  *            options?: [{id,name}] | (values)=>[{id,name}], half?, hidden?, disabled?, helperText?, placeholder? }]
  * onSubmit(values) may throw; the message is shown in the dialog.
  */
-const FormDialog = ({ open, title, subtitle, fields, initialValues = {}, validationSchema, onSubmit, onClose, submitLabel = 'Save' }) => {
-    const theme = useTheme();
-    const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+// opens as a panel from the right so the page behind stays visible
+const FormDialog = ({ open, title, subtitle, fields, initialValues = {}, validationSchema, onSubmit, onClose, submitLabel = 'Save', width = 520 }) => {
     const [submitError, setSubmitError] = useState('');
 
     const startValues = fields.reduce((acc, f) => {
@@ -27,7 +26,7 @@ const FormDialog = ({ open, title, subtitle, fields, initialValues = {}, validat
     };
 
     return (
-        <Dialog open={open} onClose={close} fullWidth maxWidth="sm" fullScreen={fullScreen}>
+        <Drawer anchor="right" open={open} onClose={close} PaperProps={{ sx: { width: { xs: '100%', sm: width }, display: 'flex' } }}>
             {/* re-mount Formik on every open so a previous edit never leaks into "Add" */}
             {open && (
                 <Formik
@@ -45,19 +44,15 @@ const FormDialog = ({ open, title, subtitle, fields, initialValues = {}, validat
                     }}
                 >
                     {({ values, errors, touched, handleChange, handleBlur, handleSubmit, setFieldValue, isSubmitting }) => (
-                        <form onSubmit={handleSubmit} noValidate>
-                            <DialogTitle sx={{ pr: 7 }}>
-                                {title}
-                                {subtitle && (
-                                    <Typography variant="body2" color="text.secondary">
-                                        {subtitle}
-                                    </Typography>
-                                )}
-                                <IconButton aria-label="Close" onClick={close} sx={{ position: 'absolute', right: 12, top: 12 }}>
-                                    <CloseIcon />
+                        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            <Box sx={{ px: 2.5, py: 1.75, pr: 7, borderBottom: `1px solid ${T.line}`, position: 'relative' }}>
+                                <Typography component="h2" sx={{ fontSize: 16, fontWeight: 650 }}>{title}</Typography>
+                                {subtitle && <Typography sx={{ fontSize: 12.5, color: T.ink2, mt: 0.25 }}>{subtitle}</Typography>}
+                                <IconButton aria-label="Close" onClick={close} sx={{ position: 'absolute', right: 12, top: 12, color: T.ink3 }}>
+                                    <CloseIcon fontSize="small" />
                                 </IconButton>
-                            </DialogTitle>
-                            <DialogContent dividers>
+                            </Box>
+                            <DialogContent sx={{ flex: 1, overflowY: 'auto', px: 2.5, py: 2.5 }}>
                                 {submitError && (
                                     <Alert severity="error" sx={{ mb: 2 }}>
                                         {submitError}
@@ -118,7 +113,7 @@ const FormDialog = ({ open, title, subtitle, fields, initialValues = {}, validat
                                         })}
                                 </Grid>
                             </DialogContent>
-                            <DialogActions sx={{ p: 2 }}>
+                            <DialogActions sx={{ px: 2.5, py: 1.5 }}>
                                 <Button onClick={close} color="inherit" disabled={isSubmitting}>
                                     Cancel
                                 </Button>
@@ -126,11 +121,11 @@ const FormDialog = ({ open, title, subtitle, fields, initialValues = {}, validat
                                     {submitLabel}
                                 </Button>
                             </DialogActions>
-                        </form>
+                        </Box>
                     )}
                 </Formik>
             )}
-        </Dialog>
+        </Drawer>
     );
 };
 
