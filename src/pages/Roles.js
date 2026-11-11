@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Chip } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import * as Yup from 'yup';
 import { roles } from 'api';
@@ -10,6 +10,8 @@ import useDialogState from 'hooks/useDialogState';
 import DataTable from 'components/DataTable';
 import FormDialog from 'components/FormDialog';
 import PageHeader from 'components/PageHeader';
+import { Pill } from 'components/StatusChip';
+import { T } from 'components/Theme';
 
 const RESERVED = ['ADMIN', 'CLIENT'];
 const fields = [{ name: 'name', label: 'Role name', type: 'text', placeholder: 'e.g. Supervisor' }];
@@ -23,8 +25,18 @@ const Roles = () => {
 
     const columns = useMemo(
         () => [
-            { id: 'name', label: 'Role', render: (r) => (RESERVED.includes(r.name) ? <Chip size="small" label={r.name} /> : r.name) },
-            { id: 'createdAt', label: 'Created', value: (r) => (r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-') }
+            {
+                id: 'name',
+                label: 'Role',
+                render: (r) => (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography sx={{ fontSize: 13, fontWeight: 600, textTransform: r.name === r.name.toUpperCase() ? 'capitalize' : 'none' }}>{r.name === r.name.toUpperCase() ? r.name.replace(/_/g, ' ').toLowerCase() : r.name}</Typography>
+                        {RESERVED.includes(r.name) && <Pill tone="default" dot={false} label="System" />}
+                    </Box>
+                )
+            },
+            { id: 'type', label: 'Type', value: (r) => (RESERVED.includes(r.name) ? 'Built in, cannot be edited' : 'Custom'), render: (r) => <Typography sx={{ fontSize: 13, color: T.ink2 }}>{RESERVED.includes(r.name) ? 'Built in, cannot be edited' : 'Custom'}</Typography> },
+            { id: 'createdAt', label: 'Created', value: (r) => r.createdAt || '', render: (r) => <Typography sx={{ fontSize: 13, color: T.ink2, whiteSpace: 'nowrap' }}>{r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</Typography> }
         ],
         []
     );
@@ -39,18 +51,18 @@ const Roles = () => {
 
     return (
         <>
-            <PageHeader title="Roles" subtitle="Job roles you can give to your team, such as Supervisor or Housekeeper" />
+            <PageHeader title="Roles" subtitle="Job titles you can give your team, such as Supervisor or Housekeeper. Screen access is set per user." />
             <DataTable
                 columns={columns}
                 rows={list.data}
                 loading={list.loading}
                 onAdd={dialog.openAdd}
                 addLabel="Add role"
-                searchPlaceholder="Search roles…"
+                searchPlaceholder="Search roles"
                 exportName="roles"
                 actions={[{ title: 'Edit', icon: <EditOutlinedIcon fontSize="small" />, onClick: dialog.openEdit, hidden: (r) => RESERVED.includes(r.name) }]}
             />
-            <FormDialog open={dialog.open} title={dialog.editing ? 'Edit role' : 'Add role'} fields={fields} initialValues={dialog.editing || {}} validationSchema={schema} onSubmit={save} onClose={dialog.close} />
+            <FormDialog open={dialog.open} title={dialog.editing ? 'Edit role' : 'Add role'} subtitle="A name only; choose screens for each user under Users" width={440} fields={fields} initialValues={dialog.editing || {}} validationSchema={schema} onSubmit={save} onClose={dialog.close} />
         </>
     );
 };

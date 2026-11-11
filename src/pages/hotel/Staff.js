@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Box, Typography } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import * as Yup from 'yup';
 import useHotel from 'hooks/useHotel';
@@ -8,7 +9,9 @@ import { useToast } from 'context/Toast';
 import DataTable from 'components/DataTable';
 import FormDialog from 'components/FormDialog';
 import PageHeader from 'components/PageHeader';
+import { KpiStrip } from 'components/Panel';
 import { ActiveChip } from 'components/StatusChip';
+import { T } from 'components/Theme';
 import { formatDate, inr } from 'utils/format';
 
 const DEPARTMENTS = ['Front desk', 'Housekeeping', 'Kitchen', 'Restaurant', 'Maintenance', 'Security', 'Management', 'Other'].map((n) => ({ id: n, name: n }));
@@ -28,15 +31,30 @@ const Staff = () => {
     const list = useAsync(() => api.staff.list());
     const editing = Boolean(dialog.editing);
 
-    const columns = useMemo(() => [
-        { id: 'name', label: 'Name' },
-        { id: 'designation', label: 'Designation' },
-        { id: 'department', label: 'Department', value: (s) => s.department || '-' },
-        { id: 'phone', label: 'Phone', value: (s) => s.phone || '-' },
-        { id: 'monthlySalary', label: 'Monthly salary', value: (s) => s.monthlySalary, render: (s) => inr(s.monthlySalary) },
-        { id: 'joinDate', label: 'Joined', value: (s) => (s.joinDate ? formatDate(s.joinDate) : '-') },
-        { id: 'active', label: 'Status', value: (s) => (s.active ? 'Active' : 'Left'), render: (s) => <ActiveChip active={Boolean(s.active)} /> }
-    ], []);
+    const active = list.data.filter((s) => s.active);
+    const departments = new Set(active.map((s) => s.department).filter(Boolean)).size;
+
+    const columns = useMemo(
+        () => [
+            {
+                id: 'name',
+                label: 'Name',
+                value: (s) => `${s.name} ${s.designation || ''}`,
+                render: (s) => (
+                    <Box>
+                        <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{s.name}</Typography>
+                        <Typography sx={{ fontSize: 12, color: T.ink3 }}>{s.designation}</Typography>
+                    </Box>
+                )
+            },
+            { id: 'department', label: 'Department', value: (s) => s.department || '—' },
+            { id: 'phone', label: 'Phone', value: (s) => s.phone || '—' },
+            { id: 'joinDate', label: 'Joined', value: (s) => s.joinDate || '', render: (s) => (s.joinDate ? formatDate(s.joinDate) : <Box component="span" sx={{ color: T.ink3 }}>—</Box>) },
+            { id: 'monthlySalary', label: 'Monthly salary', align: 'right', value: (s) => s.monthlySalary, render: (s) => inr(s.monthlySalary) },
+            { id: 'active', label: 'Status', value: (s) => (s.active ? 'Active' : 'Left'), render: (s) => <ActiveChip active={Boolean(s.active)} /> }
+        ],
+        []
+    );
 
     const fields = [
         { name: 'name', label: 'Full name', type: 'text' },
@@ -59,10 +77,29 @@ const Staff = () => {
 
     return (
         <>
-            <PageHeader title="Staff" subtitle="Your team and what they are paid" />
-            <DataTable columns={columns} rows={list.data} loading={list.loading} onAdd={dialog.openAdd} addLabel="Add staff" searchPlaceholder="Search staff…" exportName="staff" emptyText="Add your team to track salaries."
-                actions={[{ title: 'Edit', icon: <EditOutlinedIcon fontSize="small" />, onClick: dialog.openEdit }]} />
-            <FormDialog open={dialog.open} title={editing ? 'Edit staff member' : 'Add staff member'} fields={fields} initialValues={editing ? { ...dialog.editing, active: Boolean(dialog.editing.active), joinDate: dialog.editing.joinDate || '' } : { active: true }} validationSchema={schema} onSubmit={save} onClose={dialog.close} />
+            <PageHeader title="Staff" subtitle="Your team, their roles and monthly salaries" />
+            <Box sx={{ mb: 2 }}>
+                <KpiStrip
+                    loading={list.loading}
+                    items={[
+                        { label: 'Active staff', value: active.length, sub: `${list.data.length - active.length} former` },
+                        { label: 'Departments', value: departments, sub: 'with active staff' },
+                        { label: 'Monthly payroll', value: inr(active.reduce((s, x) => s + Number(x.monthlySalary || 0), 0)), sub: 'active staff, before bonus' }
+                    ]}
+                />
+            </Box>
+            <DataTable
+                columns={columns}
+                rows={list.data}
+                loading={list.loading}
+                onAdd={dialog.openAdd}
+                addLabel="Add staff"
+                searchPlaceholder="Search name, role, phone"
+                exportName="staff"
+                emptyText="Add your team to track salaries."
+                actions={[{ title: 'Edit', icon: <EditOutlinedIcon fontSize="small" />, onClick: dialog.openEdit }]}
+            />
+            <FormDialog open={dialog.open} title={editing ? 'Edit staff member' : 'Add staff member'} subtitle={editing ? dialog.editing.name : 'Salary is used as the default on the payroll screen'} fields={fields} initialValues={editing ? { ...dialog.editing, active: Boolean(dialog.editing.active), joinDate: dialog.editing.joinDate || '' } : { active: true }} validationSchema={schema} onSubmit={save} onClose={dialog.close} />
         </>
     );
 };

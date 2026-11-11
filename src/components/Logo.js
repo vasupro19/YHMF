@@ -1,16 +1,18 @@
 import { Box, Typography } from '@mui/material';
 import { T } from './Theme';
 
-// The YHM mark: a solid "Y" standing on a brass threshold line, inside a maroon tile.
-// tone="inverse" draws a white tile with a maroon Y, for use on maroon backgrounds.
+// The YHM mark: a hotel doorway (arch) with a "Y" inside, standing on a brass threshold.
+// tone="inverse" draws a white tile with a maroon doorway, for use on maroon backgrounds.
 export const LogoMark = ({ size = 32, tone = 'default' }) => {
     const tile = tone === 'inverse' ? '#fff' : T.brand;
-    const glyph = tone === 'inverse' ? T.brand : '#fff';
+    const door = tone === 'inverse' ? T.brand : '#fff';
+    const glyph = tone === 'inverse' ? '#fff' : T.brand;
     return (
         <Box component="svg" viewBox="0 0 40 40" width={size} height={size} aria-hidden sx={{ flexShrink: 0, display: 'block' }}>
-            <rect width="40" height="40" rx="8" fill={tile} />
-            <path d="M9.5 9h5.1l5.4 7.9L25.4 9h5.1l-8.1 11.6V29h-4.8v-8.4z" fill={glyph} />
-            <rect x="12" y="31.6" width="16" height="2" rx="1" fill="#C9A35A" />
+            <rect width="40" height="40" rx="9" fill={tile} />
+            <path d="M10.5 33V18.5a9.5 9.5 0 0 1 19 0V33z" fill={door} />
+            <path d="M15.6 15.2 20 21l4.4-5.8M20 21v8.6" stroke={glyph} strokeWidth="2.7" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <rect x="7.5" y="33" width="25" height="2.2" rx="1.1" fill="#C9A35A" />
         </Box>
     );
 };

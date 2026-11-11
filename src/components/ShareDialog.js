@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
@@ -9,6 +9,7 @@ import useHotel from 'hooks/useHotel';
 import { useToast } from 'context/Toast';
 import { inr, upiLink } from 'utils/format';
 import UpiQr from './UpiQr';
+import { T } from './Theme';
 
 const KINDS = [
     ['confirmation', 'Booking confirmation'],
@@ -83,21 +84,22 @@ const ShareDialog = ({ open, booking, defaultKind = 'confirmation', onClose }) =
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-            <DialogTitle sx={{ pr: 7 }}>
-                Send to guest
-                <Typography variant="body2" color="text.secondary">{booking?.customerName} · {booking?.bookingNumber}</Typography>
-                <IconButton aria-label="Close" onClick={onClose} sx={{ position: 'absolute', right: 12, top: 12 }}><CloseIcon /></IconButton>
-            </DialogTitle>
-            <DialogContent dividers>
+            <Box sx={{ px: 2.5, py: 1.75, pr: 7, borderBottom: `1px solid ${T.line}`, position: 'relative' }}>
+                <Typography component="h2" sx={{ fontSize: 16, fontWeight: 650 }}>Send to guest</Typography>
+                <Typography sx={{ fontSize: 12.5, color: T.ink2, mt: 0.25 }}>{booking?.customerName} · {booking?.bookingNumber}</Typography>
+                <IconButton aria-label="Close" onClick={onClose} sx={{ position: 'absolute', right: 12, top: 12, color: T.ink3 }}><CloseIcon fontSize="small" /></IconButton>
+            </Box>
+            <DialogContent sx={{ px: 2.5, py: 2.5 }}>
                 {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
                 {loading && !info ? (
                     <Box sx={{ textAlign: 'center', py: 5 }}><CircularProgress size={28} /></Box>
                 ) : info && (
                     <>
-                        <Stack direction="row" spacing={0.75} flexWrap="wrap" rowGap={0.75} sx={{ mb: 2 }}>
-                            {KINDS.map(([id, label]) => <Chip key={id} label={label} clickable color={kind === id ? 'primary' : 'default'} variant={kind === id ? 'filled' : 'outlined'} onClick={() => setKind(id)} />)}
-                        </Stack>
-                        <TextField label="Message" value={text} onChange={(e) => setText(e.target.value)} multiline minRows={8} maxRows={14} helperText="You can edit the message before sending." />
+                        <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: T.ink3, mb: 1 }}>Message</Typography>
+                        <ToggleButtonGroup size="small" exclusive value={kind} onChange={(_, v) => v && setKind(v)} aria-label="Message type" sx={{ mb: 1.5, flexWrap: 'wrap', '& .MuiToggleButton-root': { borderRadius: '6px !important', border: `1px solid ${T.line2} !important`, mr: 0.75, mb: 0.75 } }}>
+                            {KINDS.map(([id, label]) => <ToggleButton key={id} value={id}>{label}</ToggleButton>)}
+                        </ToggleButtonGroup>
+                        <TextField inputProps={{ 'aria-label': 'Message', style: { fontSize: 13, lineHeight: 1.55 } }} value={text} onChange={(e) => setText(e.target.value)} multiline minRows={8} maxRows={14} helperText="You can edit the message before sending." />
 
                         <Stack direction="row" spacing={1} flexWrap="wrap" rowGap={1} sx={{ mt: 2 }}>
                             <Tooltip title={info.phone ? '' : 'This guest has no phone number saved'}>
@@ -109,14 +111,14 @@ const ShareDialog = ({ open, booking, defaultKind = 'confirmation', onClose }) =
                             <Button variant="outlined" color="inherit" startIcon={<ContentCopyIcon />} onClick={() => copy(text, 'Message')}>Copy text</Button>
                             <Button variant="outlined" color="inherit" startIcon={<LinkIcon />} onClick={() => copy(link, 'Bill link')}>Copy bill link</Button>
                         </Stack>
-                        {!info.phone && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>WhatsApp opens with the message ready. You press send, so nothing goes out by itself.</Typography>}
+                        {!info.phone && <Typography sx={{ display: 'block', mt: 1, fontSize: 12, color: T.ink3 }}>WhatsApp opens with the message ready. You press send, so nothing goes out by itself.</Typography>}
 
                         {showUpi && (
-                            <Box sx={{ mt: 3, p: 2, borderRadius: '16px', border: 1, borderColor: 'divider', display: 'flex', gap: 2.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <Box sx={{ mt: 2.5, p: 2, borderRadius: '6px', border: `1px solid ${T.line}`, bgcolor: T.subtle, display: 'flex', gap: 2.5, alignItems: 'center', flexWrap: 'wrap' }}>
                                 <UpiQr link={pay} size={140} />
                                 <Box sx={{ flex: 1, minWidth: 200 }}>
-                                    <Typography variant="subtitle1">Collect {inr(info.balance)} by UPI</Typography>
-                                    <Typography variant="body2" color="text.secondary">The guest scans this with any UPI app, or pays from their bill link. Record the payment here once it arrives.</Typography>
+                                    <Typography sx={{ fontSize: 14, fontWeight: 650 }}>Collect {inr(info.balance)} by UPI</Typography>
+                                    <Typography sx={{ fontSize: 12.5, color: T.ink2, mt: 0.5 }}>The guest scans this with any UPI app, or pays from their bill link. Record the payment here once it arrives.</Typography>
                                 </Box>
                             </Box>
                         )}
@@ -124,9 +126,9 @@ const ShareDialog = ({ open, booking, defaultKind = 'confirmation', onClose }) =
                     </>
                 )}
             </DialogContent>
-            <DialogActions sx={{ p: 2, justifyContent: 'space-between' }}>
+            <DialogActions sx={{ justifyContent: 'space-between' }}>
                 <Tooltip title="Makes the current link stop working and creates a new one"><span><Button color="inherit" size="small" onClick={() => load(true)} disabled={loading || !info}>Replace link</Button></span></Tooltip>
-                <Button onClick={onClose}>Done</Button>
+                <Button variant="outlined" color="inherit" onClick={onClose}>Done</Button>
             </DialogActions>
         </Dialog>
     );

@@ -1,10 +1,13 @@
 import { useMemo, useRef, useState } from 'react';
-import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Stack, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CircularProgress, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, Typography } from '@mui/material';
 import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
-import DownloadIcon from '@mui/icons-material/Download';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
 import useHotel from 'hooks/useHotel';
 import { useToast } from 'context/Toast';
 import PageHeader from 'components/PageHeader';
+import { Pill } from 'components/StatusChip';
+import { T } from 'components/Theme';
 import { downloadText, parseCsv } from 'utils/csv';
 
 const KINDS = {
@@ -35,6 +38,18 @@ const KINDS = {
 };
 
 const COLOR = { ok: 'success', error: 'error', skipped: 'warning' };
+
+const Step = ({ n, title, done, children }) => (
+    <Box sx={{ display: 'flex', gap: 1.5, py: 2, borderTop: `1px solid ${T.line}`, '&:first-of-type': { borderTop: 0, pt: 0 } }}>
+        <Box sx={{ width: 22, height: 22, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 11.5, fontWeight: 700, border: `1.5px solid ${done ? T.brand : T.line2}`, bgcolor: done ? T.brand : T.panel, color: done ? '#fff' : T.ink2 }}>{n}</Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontSize: 13.5, fontWeight: 650, mb: 0.75 }}>{title}</Typography>
+            {children}
+        </Box>
+    </Box>
+);
+
+const tableBox = { overflowX: 'auto', border: `1px solid ${T.line}`, borderRadius: '6px' };
 
 const Import = () => {
     const { api } = useHotel();
@@ -84,68 +99,93 @@ const Import = () => {
         <>
             <PageHeader title="Import data" subtitle="Bring your existing rooms, guests, staff and bookings from a spreadsheet" />
             <Card>
-                <Tabs value={kind} onChange={(_, v) => { setKind(v); reset(); }} variant="scrollable" sx={{ px: 2, borderBottom: 1, borderColor: 'divider' }}>
-                    {Object.entries(KINDS).map(([id, v]) => <Tab key={id} value={id} label={v.label} />)}
-                </Tabs>
-                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Typography sx={{ mb: 1 }}>{k.help}</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Columns: <b>{k.columns}</b>. Column names are matched loosely, and the order does not matter.</Typography>
-                    <Stack direction="row" spacing={1.5} flexWrap="wrap" rowGap={1.5}>
-                        <Button variant="outlined" startIcon={<DownloadIcon />} onClick={() => downloadText(`yhm-${kind}-template.csv`, k.sample)}>Download template</Button>
-                        <Button variant="contained" startIcon={<FileUploadOutlinedIcon />} onClick={() => input.current.click()}>Choose CSV file</Button>
-                        <input ref={input} type="file" accept=".csv,.txt,.tsv,text/csv" hidden onChange={load} data-testid="csv-input" />
-                    </Stack>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>Using Excel? Choose File → Save As → CSV. Nothing is saved until you press Import.</Typography>
+                <Box sx={{ px: 1.5, borderBottom: `1px solid ${T.line}` }}>
+                    <Tabs value={kind} onChange={(_, v) => { setKind(v); reset(); }} variant="scrollable" aria-label="What to import">
+                        {Object.entries(KINDS).map(([id, v]) => <Tab key={id} value={id} label={v.label} />)}
+                    </Tabs>
+                </Box>
+                <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
+                    <Box sx={{ mb: 2.5, p: 1.5, bgcolor: T.subtle, border: `1px solid ${T.line}`, borderRadius: '6px' }}>
+                        <Typography sx={{ fontSize: 13 }}>{k.help}</Typography>
+                        <Typography sx={{ fontSize: 12.5, color: T.ink2, mt: 0.5 }}>
+                            Columns: <Box component="span" sx={{ fontWeight: 600, color: T.ink }}>{k.columns}</Box>. Names are matched loosely and the order doesn't matter.
+                        </Typography>
+                    </Box>
 
-                    {error && <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError('')}>{error}</Alert>}
+                    <Step n={1} title="Get the template" done={Boolean(file || report)}>
+                        <Button variant="outlined" color="inherit" startIcon={<FileDownloadOutlinedIcon />} onClick={() => downloadText(`yhm-${kind}-template.csv`, k.sample)}>Download {k.label.toLowerCase()} template</Button>
+                    </Step>
 
-                    {file && !report?.committed && (
-                        <Box sx={{ mt: 3 }}>
-                            <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" rowGap={1}>
-                                <Typography variant="h6">{file.name}</Typography>
-                                <Chip size="small" label={`${file.rows.length} row${file.rows.length > 1 ? 's' : ''}`} />
-                                <Box sx={{ flexGrow: 1 }} />
-                                <Button onClick={reset} color="inherit">Remove</Button>
-                                <Button variant="contained" onClick={() => run(false)} disabled={busy} startIcon={busy ? <CircularProgress size={16} color="inherit" /> : null}>Check file</Button>
-                            </Stack>
-                            <Box sx={{ overflowX: 'auto', mt: 1.5, border: 1, borderColor: 'divider', borderRadius: 2 }}>
-                                <Table size="small">
-                                    <TableHead><TableRow>{file.headers.map((h) => <TableCell key={h}>{h}</TableCell>)}</TableRow></TableHead>
-                                    <TableBody>{file.rows.slice(0, 5).map((r, i) => <TableRow key={i}>{file.headers.map((h) => <TableCell key={h}>{r[h]}</TableCell>)}</TableRow>)}</TableBody>
-                                </Table>
-                            </Box>
-                            {file.rows.length > 5 && <Typography variant="caption" color="text.secondary">Showing the first 5 rows.</Typography>}
+                    <Step n={2} title="Choose your CSV file" done={Boolean(file || report)}>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <Button variant={file ? 'outlined' : 'contained'} color={file ? 'inherit' : 'primary'} startIcon={<FileUploadOutlinedIcon />} onClick={() => input.current.click()}>{file ? 'Choose another file' : 'Choose CSV file'}</Button>
+                            <input ref={input} type="file" accept=".csv,.txt,.tsv,text/csv" hidden onChange={load} data-testid="csv-input" />
+                            <Typography sx={{ fontSize: 12, color: T.ink3 }}>Using Excel? Choose File → Save As → CSV. Nothing is saved until you press Import.</Typography>
                         </Box>
-                    )}
+                        {error && <Alert severity="error" sx={{ mt: 1.5 }} onClose={() => setError('')}>{error}</Alert>}
 
-                    {report && (
-                        <Box sx={{ mt: 3 }}>
-                            <Stack direction="row" spacing={1} flexWrap="wrap" rowGap={1} alignItems="center">
-                                <Chip color="success" label={`${report.valid} ready`} />
-                                {report.invalid > 0 && <Chip color="error" label={`${report.invalid} with problems`} />}
-                                {report.skipped > 0 && <Chip color="warning" label={`${report.skipped} skipped (already there)`} />}
-                                {report.committed && <Chip color="primary" label="Imported" />}
-                            </Stack>
-
-                            {problems.length > 0 && (
-                                <Box sx={{ mt: 2, overflowX: 'auto', border: 1, borderColor: 'divider', borderRadius: 2 }}>
+                        {file && !report?.committed && (
+                            <Box sx={{ mt: 1.5 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+                                    <InsertDriveFileOutlinedIcon sx={{ fontSize: 18, color: T.ink3 }} />
+                                    <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{file.name}</Typography>
+                                    <Pill dot={false} label={`${file.rows.length} row${file.rows.length > 1 ? 's' : ''}`} />
+                                    <Box sx={{ flexGrow: 1 }} />
+                                    <Button size="small" onClick={reset} color="inherit">Remove</Button>
+                                </Box>
+                                <Box sx={tableBox}>
                                     <Table size="small">
-                                        <TableHead><TableRow><TableCell>Row</TableCell><TableCell>Result</TableCell><TableCell>Why</TableCell></TableRow></TableHead>
-                                        <TableBody>{problems.map((r) => <TableRow key={r.row}><TableCell>{r.row}</TableCell><TableCell><Chip size="small" variant="outlined" color={COLOR[r.status]} label={r.status === 'error' ? 'Problem' : 'Skipped'} /></TableCell><TableCell>{r.message}</TableCell></TableRow>)}</TableBody>
+                                        <TableHead><TableRow>{file.headers.map((h) => <TableCell key={h}>{h}</TableCell>)}</TableRow></TableHead>
+                                        <TableBody>{file.rows.slice(0, 5).map((r, i) => <TableRow key={i}>{file.headers.map((h) => <TableCell key={h}>{r[h]}</TableCell>)}</TableRow>)}</TableBody>
                                     </Table>
                                 </Box>
-                            )}
+                                {file.rows.length > 5 && <Typography sx={{ fontSize: 12, color: T.ink3, mt: 0.5 }}>Showing the first 5 rows.</Typography>}
+                            </Box>
+                        )}
+                    </Step>
 
-                            {!report.committed && report.valid > 0 && (
-                                <Box sx={{ mt: 2 }}>
-                                    {report.invalid > 0 && <Alert severity="warning" sx={{ mb: 1.5 }}>The rows with problems will be left out. Row numbers match your file, counting the header as row 1. Fix them and import again, or import the good rows now.</Alert>}
-                                    <Button variant="contained" size="large" onClick={() => run(true)} disabled={busy} startIcon={busy ? <CircularProgress size={18} color="inherit" /> : null}>Import {report.valid} {k.label.toLowerCase()}</Button>
+                    <Step n={3} title="Check and import" done={Boolean(report?.committed)}>
+                        {!file && !report && <Typography sx={{ fontSize: 12.5, color: T.ink3 }}>Choose a file first. It is checked before anything is saved.</Typography>}
+                        {file && !report && (
+                            <Button variant="contained" onClick={() => run(false)} disabled={busy} startIcon={busy ? <CircularProgress size={16} color="inherit" /> : null}>Check file</Button>
+                        )}
+                        {report && (
+                            <Box>
+                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <Pill tone="success" label={`${report.valid} ready`} />
+                                    {report.invalid > 0 && <Pill tone="error" label={`${report.invalid} with problems`} />}
+                                    {report.skipped > 0 && <Pill tone="warning" label={`${report.skipped} skipped (already there)`} />}
+                                    {report.committed && <Pill tone="brand" label="Imported" />}
                                 </Box>
-                            )}
-                            {!report.committed && report.valid === 0 && <Alert severity="info" sx={{ mt: 2 }}>Nothing in this file can be imported yet. Fix the problems above and choose the file again.</Alert>}
-                        </Box>
-                    )}
-                </CardContent>
+
+                                {problems.length > 0 && (
+                                    <Box sx={{ ...tableBox, mt: 1.5 }}>
+                                        <Table size="small">
+                                            <TableHead><TableRow><TableCell sx={{ width: 70 }}>Row</TableCell><TableCell sx={{ width: 110 }}>Result</TableCell><TableCell>Reason</TableCell></TableRow></TableHead>
+                                            <TableBody>
+                                                {problems.map((r) => (
+                                                    <TableRow key={r.row}>
+                                                        <TableCell className="num">{r.row}</TableCell>
+                                                        <TableCell><Pill tone={COLOR[r.status]} label={r.status === 'error' ? 'Problem' : 'Skipped'} /></TableCell>
+                                                        <TableCell sx={{ color: T.ink2 }}>{r.message}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </Box>
+                                )}
+
+                                {!report.committed && report.valid > 0 && (
+                                    <Box sx={{ mt: 1.5 }}>
+                                        {report.invalid > 0 && <Alert severity="warning" sx={{ mb: 1.5 }}>The rows with problems will be left out. Row numbers match your file, counting the header as row 1. Fix them and import again, or import the good rows now.</Alert>}
+                                        <Button variant="contained" onClick={() => run(true)} disabled={busy} startIcon={busy ? <CircularProgress size={16} color="inherit" /> : null}>Import {report.valid} {k.label.toLowerCase()}</Button>
+                                    </Box>
+                                )}
+                                {!report.committed && report.valid === 0 && <Alert severity="info" sx={{ mt: 1.5 }}>Nothing in this file can be imported yet. Fix the problems above and choose the file again.</Alert>}
+                            </Box>
+                        )}
+                    </Step>
+                </Box>
             </Card>
         </>
     );

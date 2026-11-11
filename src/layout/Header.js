@@ -24,7 +24,7 @@ const useCrumbs = () => {
     if (!base) return [];
     const group = menu.find((m) => m.url === base)?.group;
     const crumbs = [];
-    if (group && GROUP_LABELS[group]) crumbs.push({ label: GROUP_LABELS[group] });
+    if (group && GROUP_LABELS[group] && GROUP_LABELS[group] !== TITLES[base]) crumbs.push({ label: GROUP_LABELS[group] });
     crumbs.push({ label: TITLES[base], to: pathname !== base ? base : undefined });
     if (pathname !== base) crumbs.push({ label: 'Details' });
     return crumbs;

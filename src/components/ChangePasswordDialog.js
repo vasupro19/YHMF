@@ -18,7 +18,7 @@ const fields = [
 const ChangePasswordDialog = ({ open, onClose }) => {
     const toast = useToast();
     return (
-        <FormDialog open={open} title="Change password" fields={fields} initialValues={{}} validationSchema={schema} submitLabel="Change password" onClose={onClose}
+        <FormDialog open={open} title="Change password" subtitle="At least 8 characters. You stay signed in on this device." width={440} fields={fields} initialValues={{}} validationSchema={schema} submitLabel="Change password" onClose={onClose}
             onSubmit={async (v) => { toast.success(await auth.changePassword(v.currentPassword, v.newPassword)); onClose(); }} />
     );
 };

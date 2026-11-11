@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Grid, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, Grid, IconButton, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlined';
 import CloseIcon from '@mui/icons-material/Close';
@@ -12,7 +12,9 @@ import DataTable from 'components/DataTable';
 import FormDialog from 'components/FormDialog';
 import PageHeader from 'components/PageHeader';
 import { ActiveChip } from 'components/StatusChip';
-import { addDays, formatDate, inr, num, todayISO } from 'utils/format';
+import { KpiStrip } from 'components/Panel';
+import { T } from 'components/Theme';
+import { addDays, formatDate, inr, num, todayISO, weekdayShort } from 'utils/format';
 
 const schema = Yup.object({
     name: Yup.string().trim().required('Name is required'),
@@ -61,36 +63,59 @@ const RatesDialog = ({ type, onClose }) => {
 
     return (
         <Dialog open onClose={onClose} fullWidth maxWidth="sm">
-            <DialogTitle sx={{ pr: 7 }}>
-                {type.name} · prices by date
-                <Typography variant="body2" color="text.secondary">Usual price {inr(type.basePrice)} per night. Dates with no custom price use it.</Typography>
-                <IconButton aria-label="Close" onClick={onClose} sx={{ position: 'absolute', right: 12, top: 12 }}><CloseIcon /></IconButton>
-            </DialogTitle>
-            <DialogContent dividers>
-                <Grid container spacing={2}>
+            <Box sx={{ px: 2.5, py: 1.75, pr: 7, borderBottom: `1px solid ${T.line}`, position: 'relative' }}>
+                <Typography component="h2" sx={{ fontSize: 16, fontWeight: 650 }}>Rates by date · {type.name}</Typography>
+                <Typography sx={{ fontSize: 12.5, color: T.ink2, mt: 0.25 }}>Rack rate {inr(type.basePrice)} per night. Dates without a special rate use it.</Typography>
+                <IconButton aria-label="Close" onClick={onClose} sx={{ position: 'absolute', right: 12, top: 12, color: T.ink3 }}><CloseIcon fontSize="small" /></IconButton>
+            </Box>
+            <DialogContent sx={{ px: 2.5, py: 2.5 }}>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: T.ink3, mb: 1.25 }}>Set a special rate</Typography>
+                <Grid container spacing={1.5}>
                     <Grid item xs={6}><TextField label="From" type="date" value={from} onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} /></Grid>
                     <Grid item xs={6}><TextField label="To (included)" type="date" value={to} onChange={(e) => setTo(e.target.value)} InputLabelProps={{ shrink: true }} /></Grid>
                     <Grid item xs={12}>
-                        <Typography variant="body2" sx={{ mb: 0.5 }}>Only on these days (leave empty for every day)</Typography>
+                        <Typography sx={{ fontSize: 12.5, color: T.ink2, mb: 0.75 }}>Only on these weekdays <Box component="span" sx={{ color: T.ink3 }}>(leave all off for every day)</Box></Typography>
                         <ToggleButtonGroup size="small" value={days} onChange={(_, v) => setDays(v)} aria-label="Weekdays">
                             {DAYS.map(([v, l]) => <ToggleButton key={v} value={v} sx={{ px: 1.5 }}>{l}</ToggleButton>)}
                         </ToggleButtonGroup>
                     </Grid>
-                    <Grid item xs={12} sm={6}><TextField label="Price per night (₹)" type="number" value={price} onChange={(e) => setPrice(e.target.value)} /></Grid>
-                    <Grid item xs={12} sm={6} sx={{ display: 'flex', gap: 1 }}>
-                        <Button variant="contained" onClick={() => run(false)} disabled={busy} fullWidth>Set price</Button>
-                        <Button color="inherit" variant="outlined" onClick={() => run(true)} disabled={busy} fullWidth>Clear</Button>
+                    <Grid item xs={12} sm={6}><TextField label="Rate per night (₹)" type="number" value={price} onChange={(e) => setPrice(e.target.value)} /></Grid>
+                    <Grid item xs={12} sm={6} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                        <Button variant="contained" onClick={() => run(false)} disabled={busy} fullWidth sx={{ height: 37 }}>Apply rate</Button>
+                        <Button color="inherit" variant="outlined" onClick={() => run(true)} disabled={busy} fullWidth sx={{ height: 37 }}>Clear range</Button>
                     </Grid>
                 </Grid>
-                <Alert severity="info" sx={{ mt: 2 }}>Bookings that already exist keep the price the guest was quoted.</Alert>
-                <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>Custom prices in the next 90 days</Typography>
-                {rates.data.length === 0 ? <Typography color="text.secondary" variant="body2">None. Every date uses the usual price.</Typography> : (
-                    <Stack direction="row" flexWrap="wrap" gap={0.75}>
-                        {rates.data.map((r) => <Chip key={r.date} size="small" variant="outlined" label={`${formatDate(r.date).slice(0, 6)} · ${num(r.price)}`} color={r.price > type.basePrice ? 'warning' : 'success'} />)}
-                    </Stack>
+                <Alert severity="info" sx={{ mt: 2 }}>Existing bookings keep the rate the guest was quoted.</Alert>
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mt: 2.5, mb: 1 }}>
+                    <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: T.ink3 }}>Special rates, next 90 days</Typography>
+                    {rates.data.length > 0 && (
+                        <Typography sx={{ fontSize: 12, color: T.ink3 }}>
+                            <Box component="span" sx={{ color: T.warning, fontWeight: 600 }}>Amber</Box> above rack · <Box component="span" sx={{ color: T.success, fontWeight: 600 }}>green</Box> below
+                        </Typography>
+                    )}
+                </Box>
+                {rates.data.length === 0 ? (
+                    <Box sx={{ p: 2, border: `1px dashed ${T.line2}`, borderRadius: '6px', textAlign: 'center' }}>
+                        <Typography sx={{ fontSize: 13, color: T.ink3 }}>None. Every date uses the rack rate.</Typography>
+                    </Box>
+                ) : (
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))', border: `1px solid ${T.line}`, borderRadius: '6px', overflow: 'hidden', maxHeight: 260, overflowY: 'auto' }}>
+                        {rates.data.map((r) => {
+                            const up = r.price > type.basePrice;
+                            return (
+                                <Tooltip key={r.date} title={`${formatDate(r.date)}: ${inr(r.price)} (rack ${inr(type.basePrice)})`}>
+                                    <Box sx={{ px: 1, py: 0.75, borderRight: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}`, bgcolor: up ? '#FDF7EC' : '#F2F9F5' }}>
+                                        <Typography sx={{ fontSize: 11, color: T.ink3 }}>{weekdayShort(r.date)} {formatDate(r.date).slice(0, 6)}</Typography>
+                                        <Typography className="num" sx={{ fontSize: 13, fontWeight: 600, color: up ? T.warning : T.success }}>{num(r.price)}</Typography>
+                                    </Box>
+                                </Tooltip>
+                            );
+                        })}
+                    </Box>
                 )}
             </DialogContent>
-            <DialogActions sx={{ p: 2 }}><Button onClick={onClose}>Done</Button></DialogActions>
+            <DialogActions><Button variant="outlined" color="inherit" onClick={onClose}>Done</Button></DialogActions>
         </Dialog>
     );
 };
@@ -104,10 +129,21 @@ const RoomTypes = () => {
     const editing = Boolean(dialog.editing);
 
     const columns = useMemo(() => [
-        { id: 'name', label: 'Room type', render: (t) => <Box><Typography variant="body2" sx={{ fontWeight: 600 }}>{t.name}</Typography><Typography variant="caption" color="text.secondary">{t.description}</Typography></Box>, value: (t) => t.name },
-        { id: 'basePrice', label: 'Usual price / night', value: (t) => t.basePrice, render: (t) => inr(t.basePrice) },
-        { id: 'sleeps', label: 'Sleeps', value: (t) => `${t.maxAdults} adults${t.maxChildren ? ` + ${t.maxChildren} children` : ''}` },
-        { id: 'roomCount', label: 'Rooms' },
+        {
+            id: 'name',
+            label: 'Room type',
+            value: (t) => t.name,
+            render: (t) => (
+                <Box>
+                    <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, minWidth: 140 }}>{t.name}</Typography>
+                    {t.description && <Typography sx={{ fontSize: 12, color: T.ink3 }}>{t.description}</Typography>}
+                </Box>
+            )
+        },
+        { id: 'basePrice', label: 'Rack rate / night', align: 'right', value: (t) => Number(t.basePrice), render: (t) => <Box component="span" sx={{ fontWeight: 600 }}>{inr(t.basePrice)}</Box> },
+        { id: 'sleeps', label: 'Max occupancy', value: (t) => `${t.maxAdults} adults${t.maxChildren ? ` + ${t.maxChildren} children` : ''}`, render: (t) => <Box component="span" sx={{ whiteSpace: 'nowrap' }}>{t.maxAdults} adults{t.maxChildren ? ` + ${t.maxChildren} children` : ''}</Box> },
+        { id: 'amenities', label: 'Amenities', sortable: false, value: (t) => t.amenities || '', render: (t) => (t.amenities ? <Typography noWrap sx={{ fontSize: 12.5, color: T.ink2, maxWidth: 260 }}>{t.amenities}</Typography> : <Box component="span" sx={{ color: T.ink3 }}>—</Box>) },
+        { id: 'roomCount', label: 'Rooms', align: 'right', value: (t) => Number(t.roomCount) || 0 },
         { id: 'active', label: 'Status', value: (t) => (t.active ? 'Active' : 'Inactive'), render: (t) => <ActiveChip active={Boolean(t.active)} /> }
     ], []);
 
@@ -130,13 +166,24 @@ const RoomTypes = () => {
 
     return (
         <>
-            <PageHeader title="Room types & rates" subtitle="Set the usual price, then change it for particular dates, weekends or seasons" />
-            <DataTable columns={columns} rows={list.data} loading={list.loading} onAdd={dialog.openAdd} addLabel="Add room type" searchPlaceholder="Search room types…" exportName="room-types" emptyText="Add a room type, for example Deluxe or Suite, then add rooms to it."
+            <PageHeader title="Room types & rates" subtitle="Rack rates per room type. Use Rates by date for weekends, seasons and events." />
+            <Box sx={{ mb: 2 }}>
+                <KpiStrip
+                    loading={list.loading}
+                    items={[
+                        { label: 'Room types', value: list.data.length, sub: `${list.data.filter((t) => t.active).length} open for booking` },
+                        { label: 'Rooms', value: list.data.reduce((n, t) => n + (Number(t.roomCount) || 0), 0), sub: 'across all types' },
+                        { label: 'Lowest rack rate', value: list.data.length ? inr(Math.min(...list.data.map((t) => Number(t.basePrice)))) : '—', sub: 'per night' },
+                        { label: 'Highest rack rate', value: list.data.length ? inr(Math.max(...list.data.map((t) => Number(t.basePrice)))) : '—', sub: 'per night' }
+                    ]}
+                />
+            </Box>
+            <DataTable columns={columns} rows={list.data} loading={list.loading} onAdd={dialog.openAdd} addLabel="Add room type" searchPlaceholder="Search room types" exportName="room-types" emptyText="Add a room type, for example Deluxe or Suite, then add rooms to it."
                 actions={[
-                    { title: 'Prices by date', icon: <EventAvailableOutlinedIcon fontSize="small" />, onClick: setRatesFor },
+                    { title: 'Rates by date', icon: <EventAvailableOutlinedIcon fontSize="small" />, onClick: setRatesFor },
                     { title: 'Edit', icon: <EditOutlinedIcon fontSize="small" />, onClick: dialog.openEdit }
                 ]} />
-            <FormDialog open={dialog.open} title={editing ? 'Edit room type' : 'Add room type'} fields={fields} initialValues={editing ? { ...dialog.editing, active: Boolean(dialog.editing.active) } : { maxAdults: 2, maxChildren: 1, active: true }} validationSchema={schema} onSubmit={save} onClose={dialog.close} />
+            <FormDialog open={dialog.open} title={editing ? 'Edit room type' : 'Add room type'} subtitle="Rack rate, occupancy and what the room includes" fields={fields} initialValues={editing ? { ...dialog.editing, active: Boolean(dialog.editing.active) } : { maxAdults: 2, maxChildren: 1, active: true }} validationSchema={schema} onSubmit={save} onClose={dialog.close} />
             <RatesDialog type={ratesFor} onClose={() => setRatesFor(null)} />
         </>
     );

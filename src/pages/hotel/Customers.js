@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Box, Chip, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { useNavigate } from 'react-router-dom';
 import * as Yup from 'yup';
@@ -10,6 +10,9 @@ import { useToast } from 'context/Toast';
 import DataTable from 'components/DataTable';
 import FormDialog from 'components/FormDialog';
 import PageHeader from 'components/PageHeader';
+import { KpiStrip } from 'components/Panel';
+import { Pill } from 'components/StatusChip';
+import { T } from 'components/Theme';
 import { GST_REGEX } from 'utils/constants';
 
 const ID_TYPES = [{ id: 'AADHAAR', name: 'Aadhaar' }, { id: 'PASSPORT', name: 'Passport' }, { id: 'DRIVING_LICENCE', name: 'Driving licence' }, { id: 'VOTER_ID', name: 'Voter ID' }, { id: 'PAN', name: 'PAN' }, { id: 'OTHER', name: 'Other' }];
@@ -30,12 +33,22 @@ const Customers = () => {
     const editing = Boolean(dialog.editing);
 
     const columns = useMemo(() => [
-        { id: 'name', label: 'Name', render: (c) => <Box><Typography variant="body2" sx={{ fontWeight: 600 }}>{c.name}</Typography>{c.companyName && <Typography variant="caption" color="text.secondary">{c.companyName}</Typography>}</Box>, value: (c) => `${c.name} ${c.companyName || ''}` },
-        { id: 'type', label: 'Type', value: (c) => (c.type === 'COMPANY' ? 'Company' : 'Individual'), render: (c) => <Chip size="small" variant="outlined" label={c.type === 'COMPANY' ? 'Company' : 'Individual'} /> },
-        { id: 'phone', label: 'Phone', value: (c) => c.phone || '-' },
-        { id: 'email', label: 'Email', value: (c) => c.email || '-' },
-        { id: 'gstin', label: 'GSTIN', value: (c) => c.gstin || '-' },
-        { id: 'bookingCount', label: 'Bookings' }
+        {
+            id: 'name',
+            label: 'Guest',
+            value: (c) => `${c.name} ${c.companyName || ''}`,
+            render: (c) => (
+                <Box>
+                    <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, minWidth: 160 }}>{c.name}</Typography>
+                    {c.companyName && <Typography noWrap sx={{ fontSize: 12, color: T.ink3 }}>{c.companyName}</Typography>}
+                </Box>
+            )
+        },
+        { id: 'type', label: 'Type', value: (c) => (c.type === 'COMPANY' ? 'Company' : 'Individual'), render: (c) => <Pill tone={c.type === 'COMPANY' ? 'brand' : 'default'} dot={false} label={c.type === 'COMPANY' ? 'Company' : 'Individual'} /> },
+        { id: 'phone', label: 'Phone', value: (c) => c.phone || '', render: (c) => (c.phone ? <Box component="span" sx={{ whiteSpace: 'nowrap' }}>{c.phone}</Box> : null) || <Box component="span" sx={{ color: T.ink3 }}>—</Box> },
+        { id: 'email', label: 'Email', value: (c) => c.email || '', render: (c) => c.email || <Box component="span" sx={{ color: T.ink3 }}>—</Box> },
+        { id: 'gstin', label: 'GSTIN', value: (c) => c.gstin || '', render: (c) => (c.gstin ? <Box component="span" className="num" sx={{ fontSize: 12.5 }}>{c.gstin}</Box> : <Box component="span" sx={{ color: T.ink3 }}>—</Box>) },
+        { id: 'bookingCount', label: 'Stays', align: 'right', value: (c) => Number(c.bookingCount) || 0 }
     ], []);
 
     const fields = [
@@ -61,11 +74,22 @@ const Customers = () => {
 
     return (
         <>
-            <PageHeader title="Guests" subtitle="People and companies you have booked" />
-            <DataTable columns={columns} rows={list.data} loading={list.loading} onAdd={dialog.openAdd} addLabel="Add guest" searchPlaceholder="Search by name, phone, company…" exportName="guests" emptyText="Guests are added here, or while creating a booking."
+            <PageHeader title="Guests" subtitle="Guest and company profiles. Click a guest to see their stays." />
+            <Box sx={{ mb: 2 }}>
+                <KpiStrip
+                    loading={list.loading}
+                    items={[
+                        { label: 'Guest profiles', value: list.data.length, sub: 'people and companies' },
+                        { label: 'Companies', value: list.data.filter((c) => c.type === 'COMPANY').length, sub: 'corporate accounts' },
+                        { label: 'Repeat guests', value: list.data.filter((c) => Number(c.bookingCount) > 1).length, sub: 'more than one stay' },
+                        { label: 'With GSTIN', value: list.data.filter((c) => c.gstin).length, sub: 'billed for input credit' }
+                    ]}
+                />
+            </Box>
+            <DataTable columns={columns} rows={list.data} loading={list.loading} onAdd={dialog.openAdd} addLabel="Add guest" searchPlaceholder="Search name, company, phone, GSTIN" exportName="guests" emptyText="Guests are added here, or while creating a booking."
                 onRowClick={(c) => navigate(`/hotel/bookings?customerId=${c.id}`)}
                 actions={[{ title: 'Edit', icon: <EditOutlinedIcon fontSize="small" />, onClick: dialog.openEdit }]} />
-            <FormDialog open={dialog.open} title={editing ? 'Edit guest' : 'Add guest'} fields={fields} initialValues={editing ? dialog.editing : { type: 'INDIVIDUAL' }} validationSchema={schema} onSubmit={save} onClose={dialog.close} />
+            <FormDialog open={dialog.open} title={editing ? 'Edit guest' : 'Add guest'} subtitle="Contact, billing and ID details" fields={fields} initialValues={editing ? dialog.editing : { type: 'INDIVIDUAL' }} validationSchema={schema} onSubmit={save} onClose={dialog.close} />
         </>
     );
 };

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Avatar, Box, Typography } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import LockPersonOutlinedIcon from '@mui/icons-material/LockPersonOutlined';
 import * as Yup from 'yup';
@@ -12,6 +13,8 @@ import FormDialog from 'components/FormDialog';
 import MenuAccessDialog from 'components/MenuAccessDialog';
 import PageHeader from 'components/PageHeader';
 import { ActiveChip } from 'components/StatusChip';
+import { T } from 'components/Theme';
+import { initials } from 'utils/format';
 
 const phone = Yup.string().matches(/^\d{10}$/, 'Enter a 10 digit number');
 
@@ -31,11 +34,23 @@ const Users = () => {
 
     const columns = useMemo(
         () => [
-            { id: 'name', label: 'Name' },
-            { id: 'email', label: 'Email' },
-            { id: 'phoneNumber', label: 'Phone', value: (r) => r.phoneNumber || '-' },
-            { id: 'role', label: 'Role', value: (r) => r.role?.name?.replace(/_/g, ' ') || '-' },
-            ...(isAdmin ? [{ id: 'client', label: 'Client', value: (r) => clientName(r.clientId) }] : []),
+            {
+                id: 'name',
+                label: 'User',
+                value: (r) => `${r.name} ${r.email}`,
+                render: (r) => (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                        <Avatar sx={{ width: 28, height: 28, fontSize: 11.5, bgcolor: T.brandTint, color: T.brand, border: `1px solid ${T.brandLine}` }}>{initials(r.name)}</Avatar>
+                        <Box sx={{ minWidth: 0 }}>
+                            <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{r.name}</Typography>
+                            <Typography sx={{ fontSize: 12, color: T.ink3 }}>{r.email}</Typography>
+                        </Box>
+                    </Box>
+                )
+            },
+            { id: 'phoneNumber', label: 'Phone', value: (r) => r.phoneNumber || '', render: (r) => <span className="num">{r.phoneNumber || '—'}</span> },
+            { id: 'role', label: 'Role', value: (r) => r.role?.name?.replace(/_/g, ' ') || '', render: (r) => <Typography sx={{ fontSize: 13, textTransform: 'capitalize' }}>{r.role?.name?.replace(/_/g, ' ').toLowerCase() || '—'}</Typography> },
+            ...(isAdmin ? [{ id: 'client', label: 'Hotel', value: (r) => clientName(r.clientId) }] : []),
             { id: 'active', label: 'Status', value: (r) => (r.active ? 'Active' : 'Inactive'), render: (r) => <ActiveChip active={r.active} /> }
         ],
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -88,16 +103,16 @@ const Users = () => {
 
     return (
         <>
-            <PageHeader title="Users" subtitle={isAdmin ? 'People across every client' : 'Your team members and what they can open'} />
+            <PageHeader title="Users" subtitle={isAdmin ? 'Everyone who can sign in, across all hotels' : 'Your team\'s logins, roles and the screens each person can open'} />
             <DataTable
                 columns={columns}
                 rows={list.data}
                 loading={list.loading}
                 onAdd={isAdmin ? undefined : dialog.openAdd}
                 addLabel="Add user"
-                searchPlaceholder="Search users…"
+                searchPlaceholder="Search name, email, role"
                 exportName="users"
-                emptyText={isAdmin ? 'Client staff will appear here.' : 'Add your first team member.'}
+                emptyText={isAdmin ? 'Hotel staff logins will appear here.' : 'Add your first team member.'}
                 actions={[
                     { title: 'Edit', icon: <EditOutlinedIcon fontSize="small" />, onClick: dialog.openEdit },
                     { title: 'Screen access', icon: <LockPersonOutlinedIcon fontSize="small" />, onClick: openAccess }
@@ -106,6 +121,7 @@ const Users = () => {
             <FormDialog
                 open={dialog.open}
                 title={editing ? 'Edit user' : 'Add user'}
+                subtitle={editing ? 'Change details, role or password' : 'Creates a login; the role sets which screens they start with'}
                 fields={fields}
                 initialValues={editing ? { ...dialog.editing, password: '', roleId: dialog.editing.roleId } : { active: true }}
                 validationSchema={schema}

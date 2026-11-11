@@ -35,14 +35,14 @@ const ResetPassword = () => {
             ) : done ? (
                 <>
                     <Alert severity="success" sx={{ mb: 2 }}>{done}</Alert>
-                    <Button component={RouterLink} to="/login" variant="contained" size="large" fullWidth>Go to sign in</Button>
+                    <Button component={RouterLink} to="/login" variant="contained" size="large" fullWidth sx={{ height: 40 }}>Go to sign in</Button>
                 </>
             ) : (
                 <form onSubmit={submit} noValidate>
                     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
                     <TextField label="New password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus autoComplete="new-password" helperText="At least 8 characters" sx={{ mb: 2 }} />
                     <TextField label="Repeat new password" type="password" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" sx={{ mb: 2.5 }} />
-                    <Button type="submit" variant="contained" size="large" fullWidth disabled={busy} startIcon={busy ? <CircularProgress size={18} color="inherit" /> : null}>Change password</Button>
+                    <Button type="submit" variant="contained" size="large" fullWidth sx={{ height: 40 }} disabled={busy} startIcon={busy ? <CircularProgress size={16} color="inherit" /> : null}>Change password</Button>
                 </form>
             )}
         </AuthCard>

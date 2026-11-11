@@ -47,19 +47,19 @@ const StatusTrack = ({ status }) => {
     if (['CANCELLED', 'NO_SHOW'].includes(status)) return null;
     const at = STEPS.findIndex((s) => s[0] === status);
     return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0, mb: 2, overflowX: 'auto' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: { xs: 'wrap', sm: 'nowrap' }, columnGap: { xs: 2, sm: 0 }, rowGap: 1, mb: 2 }}>
             {STEPS.map(([id, label], i) => {
                 const done = i < at;
                 const current = i === at;
                 return (
-                    <Box key={id} sx={{ display: 'flex', alignItems: 'center', flex: i < STEPS.length - 1 ? 1 : '0 0 auto', minWidth: 0 }}>
+                    <Box key={id} sx={{ display: 'flex', alignItems: 'center', flex: { xs: '0 0 auto', sm: i < STEPS.length - 1 ? 1 : '0 0 auto' }, minWidth: 0 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
                             <Box sx={{ width: 20, height: 20, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 700, bgcolor: done ? T.brand : current ? T.panel : T.panel, color: done ? '#fff' : current ? T.brand : T.ink3, border: `1.5px solid ${done || current ? T.brand : T.line2}` }}>
                                 {done ? <CheckIcon sx={{ fontSize: 13 }} /> : i + 1}
                             </Box>
                             <Typography sx={{ fontSize: 12.5, fontWeight: current ? 650 : 500, color: done || current ? T.ink : T.ink3, whiteSpace: 'nowrap' }}>{label}</Typography>
                         </Box>
-                        {i < STEPS.length - 1 && <Box sx={{ flex: 1, height: '1.5px', minWidth: 24, mx: 1.25, bgcolor: done ? T.brand : T.line2 }} />}
+                        {i < STEPS.length - 1 && <Box sx={{ display: { xs: 'none', sm: 'block' }, flex: 1, height: '1.5px', minWidth: 24, mx: 1.25, bgcolor: done ? T.brand : T.line2 }} />}
                     </Box>
                 );
             })}

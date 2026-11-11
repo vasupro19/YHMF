@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Box, Card, CardContent, Chip, Grid, IconButton, TextField, Typography } from '@mui/material';
+import { Box, Button, IconButton, TextField, Typography } from '@mui/material';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import UndoIcon from '@mui/icons-material/Undo';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -13,6 +13,9 @@ import ConfirmDialog from 'components/ConfirmDialog';
 import DataTable from 'components/DataTable';
 import FormDialog from 'components/FormDialog';
 import PageHeader from 'components/PageHeader';
+import { KpiStrip } from 'components/Panel';
+import { Pill } from 'components/StatusChip';
+import { T } from 'components/Theme';
 import { formatDate, inr, thisMonth, todayISO } from 'utils/format';
 
 const METHODS = [{ id: 'CASH', name: 'Cash' }, { id: 'BANK', name: 'Bank transfer' }, { id: 'UPI', name: 'UPI' }, { id: 'CHEQUE', name: 'Cheque' }, { id: 'OTHER', name: 'Other' }];
@@ -29,6 +32,7 @@ const shiftMonth = (m, n) => {
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 };
 const monthLabel = (m) => new Date(`${m}-01T00:00:00Z`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+const dash = <Box component="span" sx={{ color: T.ink3 }}>—</Box>;
 
 const Payroll = () => {
     const { api } = useHotel();
@@ -48,14 +52,40 @@ const Payroll = () => {
         };
     }, [list.data]);
 
-    const columns = useMemo(() => [
-        { id: 'name', label: 'Staff', render: (r) => <Box><Typography variant="body2" sx={{ fontWeight: 600 }}>{r.name}</Typography><Typography variant="caption" color="text.secondary">{r.designation}</Typography></Box>, value: (r) => r.name },
-        { id: 'salary', label: 'Salary', value: (r) => (r.paymentId ? r.baseSalary : r.monthlySalary), render: (r) => inr(r.paymentId ? r.baseSalary : r.monthlySalary) },
-        { id: 'bonus', label: 'Bonus', value: (r) => r.bonus || 0, render: (r) => (r.paymentId ? inr(r.bonus) : '-') },
-        { id: 'deductions', label: 'Deductions', value: (r) => r.deductions || 0, render: (r) => (r.paymentId ? inr(r.deductions) : '-') },
-        { id: 'netPaid', label: 'Net paid', value: (r) => r.netPaid || 0, render: (r) => (r.paymentId ? <strong>{inr(r.netPaid)}</strong> : '-') },
-        { id: 'status', label: 'Status', value: (r) => (r.paymentId ? 'Paid' : 'Pending'), render: (r) => (r.paymentId ? <Chip size="small" color="success" variant="outlined" label={`Paid ${formatDate(r.paidOn).slice(0, 6)} · ${r.method.toLowerCase()}`} /> : <Chip size="small" color="warning" variant="outlined" label="Pending" />) }
-    ], []);
+    const columns = useMemo(
+        () => [
+            {
+                id: 'name',
+                label: 'Staff',
+                value: (r) => r.name,
+                render: (r) => (
+                    <Box>
+                        <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{r.name}</Typography>
+                        <Typography sx={{ fontSize: 12, color: T.ink3 }}>{r.designation}</Typography>
+                    </Box>
+                )
+            },
+            { id: 'salary', label: 'Salary', align: 'right', value: (r) => (r.paymentId ? r.baseSalary : r.monthlySalary), render: (r) => inr(r.paymentId ? r.baseSalary : r.monthlySalary) },
+            { id: 'bonus', label: 'Bonus', align: 'right', value: (r) => r.bonus || 0, render: (r) => (r.paymentId ? inr(r.bonus) : dash) },
+            { id: 'deductions', label: 'Deductions', align: 'right', value: (r) => r.deductions || 0, render: (r) => (r.paymentId ? inr(r.deductions) : dash) },
+            { id: 'netPaid', label: 'Net paid', align: 'right', value: (r) => r.netPaid || 0, render: (r) => (r.paymentId ? <Box component="span" sx={{ fontWeight: 600 }}>{inr(r.netPaid)}</Box> : dash) },
+            {
+                id: 'status',
+                label: 'Status',
+                value: (r) => (r.paymentId ? 'Paid' : 'Pending'),
+                render: (r) =>
+                    r.paymentId ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Pill tone="success" label="Paid" />
+                            <Typography sx={{ fontSize: 12, color: T.ink3, whiteSpace: 'nowrap' }}>{formatDate(r.paidOn).slice(0, 6)} · {METHODS.find((m) => m.id === r.method)?.name || r.method}</Typography>
+                        </Box>
+                    ) : (
+                        <Pill tone="warning" label="Pending" />
+                    )
+            }
+        ],
+        []
+    );
 
     const fields = [
         { name: 'baseSalary', label: 'Salary for the month (₹)', type: 'number', helperText: 'Change it if they worked part of the month' },
@@ -76,24 +106,43 @@ const Payroll = () => {
 
     return (
         <>
-            <PageHeader title="Payroll" subtitle="Record each month's salary as it is paid"
+            <PageHeader
+                title="Payroll"
+                subtitle={`Salaries for ${monthLabel(month)}, recorded as they are paid`}
                 actions={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <IconButton onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month"><ChevronLeftIcon /></IconButton>
-                        <TextField type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} sx={{ width: 170 }} inputProps={{ 'aria-label': 'Month' }} />
-                        <IconButton onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Next month"><ChevronRightIcon /></IconButton>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', border: `1px solid ${T.line2}`, borderRadius: '6px', height: 32, overflow: 'hidden', bgcolor: T.panel }}>
+                            <IconButton size="small" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month" sx={{ borderRadius: 0, height: '100%' }}><ChevronLeftIcon fontSize="small" /></IconButton>
+                            <Button color="inherit" onClick={() => setMonth(thisMonth())} sx={{ borderRadius: 0, minHeight: 30, borderLeft: `1px solid ${T.line2}`, borderRight: `1px solid ${T.line2}` }}>This month</Button>
+                            <IconButton size="small" onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Next month" sx={{ borderRadius: 0, height: '100%' }}><ChevronRightIcon fontSize="small" /></IconButton>
+                        </Box>
+                        <TextField type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} sx={{ width: 160, '& .MuiOutlinedInput-root': { height: 32 } }} inputProps={{ 'aria-label': 'Month' }} />
                     </Box>
-                } />
-            <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
-                <Grid item xs={12} sm={4}><Card><CardContent><Typography variant="body2" color="text.secondary">Paid in {monthLabel(month)}</Typography><Typography variant="h5">{inr(totals.paidAmount)}</Typography><Typography variant="caption" color="text.secondary">{totals.paidCount} staff</Typography></CardContent></Card></Grid>
-                <Grid item xs={12} sm={4}><Card><CardContent><Typography variant="body2" color="text.secondary">Still to pay</Typography><Typography variant="h5">{inr(totals.pendingAmount)}</Typography><Typography variant="caption" color="text.secondary">{totals.pendingCount} staff</Typography></CardContent></Card></Grid>
-                <Grid item xs={12} sm={4}><Card><CardContent><Typography variant="body2" color="text.secondary">Whole payroll</Typography><Typography variant="h5">{inr(totals.paidAmount + totals.pendingAmount)}</Typography><Typography variant="caption" color="text.secondary">paid + pending</Typography></CardContent></Card></Grid>
-            </Grid>
-            <DataTable columns={columns} rows={list.data} loading={list.loading} rowKey="staffId" searchPlaceholder="Search staff…" exportName={`payroll-${month}`} emptyText="Add staff first, then record their salary here."
+                }
+            />
+            <Box sx={{ mb: 2 }}>
+                <KpiStrip
+                    loading={list.loading}
+                    items={[
+                        { label: `Paid in ${monthLabel(month)}`, value: inr(totals.paidAmount), sub: `${totals.paidCount} staff`, color: T.success },
+                        { label: 'Still to pay', value: inr(totals.pendingAmount), sub: `${totals.pendingCount} staff`, color: totals.pendingAmount > 0 ? T.warning : undefined },
+                        { label: 'Whole payroll', value: inr(totals.paidAmount + totals.pendingAmount), sub: 'paid + pending' }
+                    ]}
+                />
+            </Box>
+            <DataTable
+                columns={columns}
+                rows={list.data}
+                loading={list.loading}
+                rowKey="staffId"
+                searchPlaceholder="Search staff"
+                exportName={`payroll-${month}`}
+                emptyText="Add staff first, then record their salary here."
                 actions={[
                     { title: (r) => (r.paymentId ? 'Edit payment' : 'Record salary'), icon: <PaymentsOutlinedIcon fontSize="small" />, onClick: dialog.openEdit },
                     { title: 'Undo payment', icon: <UndoIcon fontSize="small" />, onClick: setUndo, hidden: (r) => !r.paymentId }
-                ]} />
+                ]}
+            />
             <FormDialog open={dialog.open} title={row ? `${row.name} · ${monthLabel(month)}` : ''} subtitle={row ? `Usual salary ${inr(row.monthlySalary)}` : undefined} fields={fields} initialValues={row ? { baseSalary: row.paymentId ? row.baseSalary : row.monthlySalary, bonus: row.bonus || 0, deductions: row.deductions || 0, method: row.method || 'CASH', paidOn: row.paidOn || todayISO(), note: row.note || '' } : {}} validationSchema={schema} onSubmit={save} onClose={dialog.close} submitLabel="Save payment" />
             <ConfirmDialog open={Boolean(undo)} title="Undo this salary payment?" confirmLabel="Undo payment" color="error" onClose={() => setUndo(null)} onConfirm={async () => { try { toast.success(await api.payroll.remove(undo.paymentId)); setUndo(null); list.reload(); } catch (e) { toast.error(e.message); } }}>
                 {undo && <>{undo.name}'s payment of {inr(undo.netPaid)} for {monthLabel(month)} will be removed and shown as pending.</>}
