@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PointOfSaleOutlinedIcon from '@mui/icons-material/PointOfSaleOutlined';
 import { AppBar, Avatar, Box, Breadcrumbs, Button, Divider, IconButton, InputAdornment, InputBase, ListItemIcon, Menu, MenuItem, Toolbar, Typography } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import SearchIcon from '@mui/icons-material/Search';
@@ -109,6 +110,12 @@ const Header = ({ onOpenMenu }) => {
                         <Typography noWrap sx={{ fontSize: 12, color: T.ink3 }}>{user?.email}</Typography>
                     </Box>
                     <Divider />
+                    {canBook && !accessibleUrls.includes('/hotel/cash') && (
+                        <MenuItem onClick={() => { setAnchor(null); navigate('/hotel/cash'); }}>
+                            <ListItemIcon><PointOfSaleOutlinedIcon fontSize="small" /></ListItemIcon>
+                            Close my cash
+                        </MenuItem>
+                    )}
                     <MenuItem onClick={() => { setAnchor(null); setPwOpen(true); }}>
                         <ListItemIcon><LockResetOutlinedIcon fontSize="small" /></ListItemIcon>
                         Change password

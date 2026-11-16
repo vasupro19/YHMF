@@ -66,6 +66,7 @@ const Settings = () => {
             if (!(Number(form[k]) >= 0 && Number(form[k]) <= 100)) err[k] = 'Enter 0 to 100';
         });
         if (!(Number(form.gstThreshold) >= 0)) err.gstThreshold = 'Enter an amount';
+        if (form.ownerEmail && !/^\S+@\S+\.\S+$/.test(form.ownerEmail)) err.ownerEmail = 'Not a valid email';
         if (form.upiId && !/^[A-Za-z0-9._-]{2,}@[A-Za-z0-9]{2,}$/.test(form.upiId)) err.upiId = 'It should look like name@bank';
         setErrors(err);
         if (Object.keys(err).length) return;
@@ -126,6 +127,14 @@ const Settings = () => {
                     <Grid container spacing={2}>
                         <Grid item xs={6} sm={4}>{field('checkInTime', 'Check-in time', { type: 'time' })}</Grid>
                         <Grid item xs={6} sm={4}>{field('checkOutTime', 'Check-out time', { type: 'time' })}</Grid>
+                    </Grid>
+                </Section>
+
+                <Section title="Owner's day report" text="Every night the day's sales, money received, cash with staff and anything unusual (deleted payments, rooms used without a booking, short cash) are emailed to the owner. The same report can be sent on WhatsApp from the Day report screen.">
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>{field('ownerEmail', "Owner's email", { type: 'email', helperText: errors.ownerEmail || 'Leave empty to stop the nightly email' })}</Grid>
+                        <Grid item xs={12} sm={6}>{field('ownerPhone', "Owner's WhatsApp number", { type: 'tel', placeholder: '98765 43210' })}</Grid>
+                        <Grid item xs={6} sm={4}>{field('summaryTime', 'Send at', { type: 'time' })}</Grid>
                     </Grid>
                 </Section>
 

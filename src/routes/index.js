@@ -26,6 +26,11 @@ const Activity = lazy(() => import('pages/hotel/Activity'));
 const ImportData = lazy(() => import('pages/hotel/Import'));
 const Setup = lazy(() => import('pages/Setup'));
 const GuestBill = lazy(() => import('pages/GuestBill'));
+const DayReport = lazy(() => import('pages/hotel/DayReport'));
+const CashDrawer = lazy(() => import('pages/hotel/CashDrawer'));
+const GuestRegister = lazy(() => import('pages/hotel/GuestRegister'));
+const RegisterPrint = lazy(() => import('pages/hotel/RegisterPrint'));
+const PreCheckin = lazy(() => import('pages/PreCheckin'));
 const ForgotPassword = lazy(() => import('pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('pages/ResetPassword'));
 
@@ -43,6 +48,7 @@ export default function AppRoutes() {
             )
         },
         { path: '/b/:token', element: <GuestBill /> },
+        { path: '/c/:token', element: <PreCheckin /> },
         { path: '/forgot-password', element: <ForgotPassword /> },
         { path: '/reset-password', element: <ResetPassword /> },
         {
@@ -70,6 +76,9 @@ export default function AppRoutes() {
                 { path: 'hotel/settings', element: hotel('/hotel/settings', <HotelSettings />) },
                 { path: 'hotel/activity', element: hotel('/hotel/activity', <Activity />) },
                 { path: 'hotel/import', element: hotel('/hotel/import', <ImportData />) },
+                { path: 'hotel/day-report', element: hotel('/hotel/day-report', <DayReport />) },
+                { path: 'hotel/cash', element: hotel(['/hotel/cash', '/hotel/bookings'], <CashDrawer />) },
+                { path: 'hotel/register', element: hotel('/hotel/register', <GuestRegister />) },
                 { path: '*', element: <NotFound /> }
             ]
         },
@@ -92,6 +101,18 @@ export default function AppRoutes() {
                     <MenuGuard url="/hotel/bookings">
                         <HotelGate>
                             <Invoice />
+                        </HotelGate>
+                    </MenuGuard>
+                </AuthGuard>
+            )
+        },
+        {
+            path: '/print/register',
+            element: (
+                <AuthGuard>
+                    <MenuGuard url="/hotel/register">
+                        <HotelGate>
+                            <RegisterPrint />
                         </HotelGate>
                     </MenuGuard>
                 </AuthGuard>

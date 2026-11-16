@@ -15,6 +15,7 @@ const KINDS = [
     ['confirmation', 'Booking confirmation'],
     ['reminder', 'Arrival reminder'],
     ['payment', 'Payment request'],
+    ['precheckin', 'Online check-in'],
     ['bill', 'Bill'],
     ['thanks', 'Thank you']
 ];
@@ -54,7 +55,8 @@ const ShareDialog = ({ open, booking, defaultKind = 'confirmation', onClose }) =
     }, [open, booking?.id]);
 
     const link = info ? `${window.location.origin}/b/${info.token}` : '';
-    const filled = useMemo(() => (info ? info.messages[kind].replace(/\{\{BILL_LINK\}\}/g, link) : ''), [info, kind, link]);
+    const checkinLink = info ? `${window.location.origin}/c/${info.token}` : '';
+    const filled = useMemo(() => (info ? info.messages[kind].replace(/\{\{BILL_LINK\}\}/g, link).replace(/\{\{CHECKIN_LINK\}\}/g, checkinLink) : ''), [info, kind, link, checkinLink]);
     useEffect(() => setText(filled), [filled]);
 
     const copy = async (value, what) => {
@@ -71,7 +73,7 @@ const ShareDialog = ({ open, booking, defaultKind = 'confirmation', onClose }) =
     const email = async () => {
         setSending(true);
         try {
-            toast.info(await api.bookings.email(booking.id, kind, text.replace(link, '{{BILL_LINK}}')));
+            toast.info(await api.bookings.email(booking.id, kind, text.replace(checkinLink, '{{CHECKIN_LINK}}').replace(link, '{{BILL_LINK}}')));
         } catch (e) {
             toast.error(e.message);
         } finally {

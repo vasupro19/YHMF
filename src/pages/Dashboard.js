@@ -109,6 +109,21 @@ const WorkspaceDashboard = () => {
                 </Alert>
             )}
 
+            {data?.formCDue > 0 && accessibleUrls.includes('/hotel/register') && (
+                <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" component={Link} to="/hotel/register?tab=formc">File Form C</Button>}>
+                    {data.formCDue} foreign guest{data.formCDue > 1 ? 's' : ''} in the house {data.formCDue > 1 ? 'have' : 'has'} no Form C filed. It is due within 24 hours of arrival.
+                </Alert>
+            )}
+            {data?.registerIncomplete > 0 && (
+                <Alert severity="warning" sx={{ mb: 2 }} action={accessibleUrls.includes('/hotel/register') ? <Button color="inherit" size="small" component={Link} to="/hotel/register">Open register</Button> : null}>
+                    {data.registerIncomplete} guest{data.registerIncomplete > 1 ? 's' : ''} in the house {data.registerIncomplete > 1 ? 'are' : 'is'} missing ID or register details.
+                </Alert>
+            )}
+            {data?.uncountedCash?.amount > 0 && accessibleUrls.includes('/hotel/day-report') && (
+                <Alert severity="info" sx={{ mb: 2 }} action={<Button color="inherit" size="small" component={Link} to="/hotel/day-report">Day report</Button>}>
+                    {inr(data.uncountedCash.amount)} in cash is with staff and not yet counted.
+                </Alert>
+            )}
             {hotelOn && (
                 <>
                     <KpiStrip

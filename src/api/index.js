@@ -39,6 +39,18 @@ export const menus = {
 // the guest's private bill page; no login, so it uses a plain request
 export const publicBill = (token) => axios.get(`${API_BASE}public/bill/${encodeURIComponent(token)}`).then((r) => r.data.data).catch((e) => { throw new Error(e.response?.data?.message || 'Could not load this bill.'); });
 
+// the guest's online check-in page (same private link as the bill)
+const pub = (p) => p.then((r) => r.data).catch((e) => { throw new Error(e.response?.data?.message || 'Something went wrong. Please try again.'); });
+export const publicCheckin = {
+    get: (token) => pub(axios.get(`${API_BASE}public/checkin/${encodeURIComponent(token)}`)).then((r) => r.data),
+    save: (token, body) => pub(axios.post(`${API_BASE}public/checkin/${encodeURIComponent(token)}`, body)).then((r) => r.message),
+    uploadId: (token, side, file) => {
+        const form = new FormData();
+        form.append('file', file);
+        return pub(axios.post(`${API_BASE}public/checkin/${encodeURIComponent(token)}/id/${side}`, form)).then((r) => r.message);
+    }
+};
+
 export const files = {
     // multipart upload -> relative path like "File/file/123-456.png"
     upload: (file) => {
@@ -84,6 +96,26 @@ export const hotelApi = (clientId) => {
         activity: (params) => get('/activity', params),
         onboarding: (body) => send('post', '/onboarding', body).then((r) => r.data),
         import: (kind, rows, opts = {}) => send('post', `/import/${kind}`, { rows, ...opts }).then((r) => r.data),
+        cash: {
+            drawer: () => get('/cash/drawer'),
+            close: (b) => send('post', '/cash/close', b).then((r) => r),
+            closes: (params) => get('/cash/closes', params)
+        },
+        dayReport: (date) => get('/day-report', { date }),
+        register: (params) => get('/register', params),
+        formC: (show) => get('/form-c', { show }),
+        markFormC: (id, b) => send('post', `/bookings/${id}/form-c`, b).then((r) => r.message),
+        guestDetails: (id, b) => send('put', `/bookings/${id}/guest-details`, b).then((r) => r.data),
+        idPhoto: {
+            // multipart: the workspace id goes in the query string because the body is a file
+            upload: (customerId, side, file) => {
+                const form = new FormData();
+                form.append('file', file);
+                return http.post(`/hotel/customers/${customerId}/id-photo/${side}`, form, { params: { clientId } }).then((r) => r.data.message);
+            },
+            blob: (customerId, side) => http.get(`/hotel/customers/${customerId}/id-photo/${side}`, { params: { clientId, t: Date.now() }, responseType: 'blob' }).then((r) => r.data),
+            remove: (customerId, side) => remove(`/customers/${customerId}/id-photo/${side}`).then((r) => r.message)
+        },
         dashboard: () => get('/dashboard'),
         report: (params) => get('/reports', params)
     };

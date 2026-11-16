@@ -66,3 +66,24 @@ export const ROLE_PRESETS = [
     { id: 'MANAGER', name: 'Manager', urls: ['/hotel/calendar', '/hotel/bookings', '/hotel/customers', '/hotel/rooms', '/hotel/room-types', '/hotel/staff', '/hotel/reports'] },
     { id: 'ACCOUNTANT', name: 'Accountant', urls: ['/hotel/bookings', '/hotel/customers', '/hotel/staff', '/hotel/payroll', '/hotel/reports'] }
 ];
+
+export const ID_TYPES = [
+    { id: 'AADHAAR', name: 'Aadhaar' },
+    { id: 'PASSPORT', name: 'Passport' },
+    { id: 'DRIVING_LICENCE', name: 'Driving licence' },
+    { id: 'VOTER_ID', name: 'Voter ID' },
+    { id: 'PAN', name: 'PAN card' },
+    { id: 'OTHER', name: 'Other' }
+];
+
+export const GENDERS = [
+    { id: 'M', name: 'Male' },
+    { id: 'F', name: 'Female' },
+    { id: 'O', name: 'Other' }
+];
+
+export const PURPOSES = ['Tourism', 'Business', 'Pilgrimage', 'Family visit', 'Medical', 'Study', 'Other'];
+
+export const isIndian = (n) => !n || ['indian', 'india'].includes(String(n).trim().toLowerCase());
+
+export const MISSING_LABELS = { phone: 'phone', address: 'address', 'ID number': 'ID number', 'ID photo': 'ID photo', 'passport number': 'passport number', 'visa number': 'visa number', 'coming from': 'coming from' };

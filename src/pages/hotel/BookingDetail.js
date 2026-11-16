@@ -17,12 +17,15 @@ import useHotel from 'hooks/useHotel';
 import useAsync from 'hooks/useAsync';
 import { useToast } from 'context/Toast';
 import BookingDialog from 'components/BookingDialog';
+import GuestDetailsDrawer from 'components/GuestDetailsDrawer';
+import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
+import HowToRegOutlinedIcon from '@mui/icons-material/HowToRegOutlined';
 import ConfirmDialog from 'components/ConfirmDialog';
 import FormDialog from 'components/FormDialog';
 import Panel from 'components/Panel';
 import { BookingChip, Pill } from 'components/StatusChip';
 import { T } from 'components/Theme';
-import { BOOKING_SOURCES, CHARGE_CATEGORIES, PAY_METHODS } from 'utils/constants';
+import { BOOKING_SOURCES, CHARGE_CATEGORIES, GENDERS, ID_TYPES, PAY_METHODS, isIndian } from 'utils/constants';
 import { daysBetween, formatDate, inr, todayISO } from 'utils/format';
 
 const chargeSchema = Yup.object({
@@ -98,6 +101,7 @@ const BookingDetail = () => {
     const location = useLocation();
     const [justCreated, setJustCreated] = useState(Boolean(location.state?.created));
     const [confirm, setConfirm] = useState(null); // { action, title, text, label, color }
+    const [guestOpen, setGuestOpen] = useState(null); // 'edit' | 'checkin'
     const b = q.data;
 
     if (!b)
@@ -147,7 +151,7 @@ const BookingDetail = () => {
             <Button variant="contained" onClick={() => act('confirm', 'Booking confirmed')}>Confirm booking</Button>
         ) : b.status === 'CONFIRMED' ? (
             <Tooltip title={arrivalOk ? '' : `Arrival is on ${formatDate(b.checkIn)}`}>
-                <span><Button variant="contained" disabled={!arrivalOk} onClick={() => act('checkin', 'Guest checked in')}>Check in</Button></span>
+                <span><Button variant="contained" disabled={!arrivalOk} onClick={() => (b.registerMissing?.length ? setGuestOpen('checkin') : act('checkin', 'Guest checked in'))}>Check in</Button></span>
             </Tooltip>
         ) : b.status === 'CHECKED_IN' ? (
             <Button variant="contained" onClick={() => setConfirm({ action: 'checkout', title: 'Check out this guest?', label: 'Check out', color: 'primary', text: bill.balance > 0 ? `${inr(bill.balance)} is still unpaid. You can record the payment now or after checkout.` : 'The folio is settled. The room will be marked for cleaning and the tax invoice issued.' })}>Check out</Button>
@@ -155,7 +159,9 @@ const BookingDetail = () => {
 
     const moreItems = [
         ['PENDING', 'CONFIRMED', 'CHECKED_IN'].includes(b.status) && { label: 'Edit booking', icon: <EditOutlinedIcon fontSize="small" />, onClick: () => setEditing(true) },
-        b.status === 'PENDING' && arrivalOk && { label: 'Check in now', icon: <CheckIcon fontSize="small" />, onClick: () => act('checkin', 'Guest checked in') },
+        b.status === 'PENDING' && arrivalOk && { label: 'Check in now', icon: <CheckIcon fontSize="small" />, onClick: () => (b.registerMissing?.length ? setGuestOpen('checkin') : act('checkin', 'Guest checked in')) },
+        ['PENDING', 'CONFIRMED'].includes(b.status) && { label: 'Send online check-in link', icon: <HowToRegOutlinedIcon fontSize="small" />, onClick: () => setShareKind('precheckin') },
+        active && { label: 'Guest ID & register details', icon: <BadgeOutlinedIcon fontSize="small" />, onClick: () => setGuestOpen('edit') },
         ['CONFIRMED', 'PENDING'].includes(b.status) && b.checkIn <= today && { label: 'Mark as no-show', icon: <EventBusyOutlinedIcon fontSize="small" />, onClick: () => setConfirm({ action: 'noshow', title: 'Mark as no-show?', label: 'Mark no-show', color: 'error', text: 'The guest did not arrive. The room becomes free again.' }) },
         ['PENDING', 'CONFIRMED'].includes(b.status) && { label: 'Cancel booking', icon: <CancelOutlinedIcon fontSize="small" />, danger: true, onClick: () => setConfirm({ action: 'cancel', title: 'Cancel this booking?', label: 'Cancel booking', color: 'error', text: 'The room becomes free again.' + (bill.paid > 0 ? ` ${inr(bill.paid)} was received as advance; refund it separately.` : '') }) }
     ].filter(Boolean);
@@ -317,7 +323,19 @@ const BookingDetail = () => {
                                 <Field label="Phone">{b.customerPhone || '—'}</Field>
                                 <Field label="Email">{b.customerEmail || '—'}</Field>
                                 {b.customerGstin && <Field label="GSTIN">{b.customerGstin}</Field>}
+                                <Field label="Nationality">{b.nationality || 'Indian'}{b.gender ? ` · ${GENDERS.find((g) => g.id === b.gender)?.name}` : ''}{b.dob ? ` · born ${formatDate(b.dob)}` : ''}</Field>
+                                <Field label="Photo ID">{b.idType ? `${ID_TYPES.find((t) => t.id === b.idType)?.name || b.idType} ${b.idNumber || ''}` : '—'}{b.hasIdFront ? ' · photo on file' : ''}</Field>
+                                {(b.comingFrom || b.goingTo) && <Field label="Travel">{[b.comingFrom && `from ${b.comingFrom}`, b.goingTo && `to ${b.goingTo}`, b.purpose].filter(Boolean).join(' · ')}</Field>}
+                                {!isIndian(b.nationality) && <Field label="Form C">{b.formCSubmittedAt ? `Filed ${formatDate(String(b.formCSubmittedAt).slice(0, 10))}${b.formCRef ? ` (${b.formCRef})` : ''}` : <Box component="span" sx={{ color: T.error }}>Not filed yet</Box>}</Field>}
                             </Box>
+                            {active && b.registerMissing?.length > 0 && (
+                                <Alert severity="warning" sx={{ mt: 1.5, py: 0 }}>Missing for the register: {b.registerMissing.join(', ')}</Alert>
+                            )}
+                            {active && (
+                                <Button fullWidth variant="outlined" color="inherit" startIcon={<BadgeOutlinedIcon />} sx={{ mt: 1.5 }} onClick={() => setGuestOpen('edit')}>
+                                    {b.registerMissing?.length ? 'Add ID and register details' : 'Edit guest details'}
+                                </Button>
+                            )}
                             <Button component={Link} to={`/hotel/bookings?customerId=${b.customerId}`} size="small" color="inherit" sx={{ mt: 1.5, px: 0.5, color: T.brand }}>All stays of this guest</Button>
                         </Panel>
                     </Box>
@@ -325,6 +343,14 @@ const BookingDetail = () => {
             </Grid>
 
             <ShareDialog open={Boolean(shareKind)} booking={b} defaultKind={shareKind || 'confirmation'} onClose={() => setShareKind(null)} />
+            <GuestDetailsDrawer
+                open={Boolean(guestOpen)}
+                booking={b}
+                checkIn={guestOpen === 'checkin'}
+                onClose={() => setGuestOpen(null)}
+                onSaved={(u) => q.setData(u)}
+                onCheckIn={() => act('checkin', 'Guest checked in')}
+            />
             <BookingDialog open={editing} booking={b} onClose={() => setEditing(false)} onSaved={(u) => { setEditing(false); q.setData(u); }} />
 
             <FormDialog

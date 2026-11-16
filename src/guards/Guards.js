@@ -20,10 +20,10 @@ export const GuestGuard = ({ children }) => {
     return children;
 };
 
-// a screen is only reachable when its url is in the user's assigned menu
+// a screen is only reachable when its url (or one of several) is in the user's assigned menu
 export const MenuGuard = ({ url, children }) => {
     const { accessibleUrls } = useAuth();
-    if (!accessibleUrls.includes(url)) {
+    if (![].concat(url).some((u) => accessibleUrls.includes(u))) {
         return (
             <EmptyState
                 icon={<LockOutlinedIcon fontSize="large" />}

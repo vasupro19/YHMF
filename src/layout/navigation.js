@@ -14,6 +14,9 @@ import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import HistoryIcon from '@mui/icons-material/History';
 import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined';
+import AssignmentIndOutlinedIcon from '@mui/icons-material/AssignmentIndOutlined';
+import PointOfSaleOutlinedIcon from '@mui/icons-material/PointOfSaleOutlined';
+import TodayOutlinedIcon from '@mui/icons-material/TodayOutlined';
 
 // the backend stores the menu (label/url/group); the look of each entry lives here
 export const ICONS = {
@@ -29,6 +32,9 @@ export const ICONS = {
     '/hotel/settings': SettingsOutlinedIcon,
     '/hotel/activity': HistoryIcon,
     '/hotel/import': UploadFileOutlinedIcon,
+    '/hotel/register': AssignmentIndOutlinedIcon,
+    '/hotel/cash': PointOfSaleOutlinedIcon,
+    '/hotel/day-report': TodayOutlinedIcon,
     '/master/role': AdminPanelSettingsOutlinedIcon,
     '/master/user': PeopleAltOutlinedIcon,
     '/master/client': HotelOutlinedIcon
@@ -52,6 +58,9 @@ export const TITLES = {
     '/hotel/settings': 'Hotel settings',
     '/hotel/activity': 'Activity log',
     '/hotel/import': 'Import data',
+    '/hotel/register': 'Guest register',
+    '/hotel/cash': 'Cash drawer',
+    '/hotel/day-report': 'Day report',
     '/master/role': 'Roles',
     '/master/user': 'Users',
     '/master/client': 'Clients'
