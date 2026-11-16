@@ -102,6 +102,13 @@ export const hotelApi = (clientId) => {
             closes: (params) => get('/cash/closes', params)
         },
         dayReport: (date) => get('/day-report', { date }),
+        gstr1: (month) => get('/gst/gstr1', { month }),
+        agentLinks: {
+            list: () => get('/agent-links'),
+            create: (b) => send('post', '/agent-links', b).then((r) => r.data),
+            setActive: (id, active) => send('put', `/agent-links/${id}`, { active }).then((r) => r.message),
+            regenerate: (id) => send('put', `/agent-links/${id}`, { regenerate: true }).then((r) => r.data)
+        },
         register: (params) => get('/register', params),
         formC: (show) => get('/form-c', { show }),
         markFormC: (id, b) => send('post', `/bookings/${id}/form-c`, b).then((r) => r.message),

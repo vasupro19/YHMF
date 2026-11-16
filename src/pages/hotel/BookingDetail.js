@@ -287,7 +287,7 @@ const BookingDetail = () => {
                             <Field label="Nights"><span className="num">{nights}</span></Field>
                             <Field label="Occupancy">{b.adults} adult{b.adults > 1 ? 's' : ''}{b.children ? `, ${b.children} child${b.children > 1 ? 'ren' : ''}` : ''}</Field>
                             <Field label="Room">{b.roomNumber} · {b.roomTypeName}</Field>
-                            <Field label="Source">{BOOKING_SOURCES.find((s) => s.id === b.source)?.name || b.source}</Field>
+                            <Field label="Source">{b.agencyName ? `${b.agencyName} (agent)` : BOOKING_SOURCES.find((s) => s.id === b.source)?.name || b.source}{b.agentRef ? ` · ref ${b.agentRef}` : ''}</Field>
                             <Field label="Checked in at">{b.checkedInAt ? new Date(b.checkedInAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}</Field>
                             <Field label="Discount">{bill.discount > 0 ? inr(bill.discount) : '—'}</Field>
                         </Box>

@@ -27,6 +27,8 @@ const ImportData = lazy(() => import('pages/hotel/Import'));
 const Setup = lazy(() => import('pages/Setup'));
 const GuestBill = lazy(() => import('pages/GuestBill'));
 const DayReport = lazy(() => import('pages/hotel/DayReport'));
+const GstReturns = lazy(() => import('pages/hotel/GstReturns'));
+const TravelAgents = lazy(() => import('pages/hotel/TravelAgents'));
 const CashDrawer = lazy(() => import('pages/hotel/CashDrawer'));
 const GuestRegister = lazy(() => import('pages/hotel/GuestRegister'));
 const RegisterPrint = lazy(() => import('pages/hotel/RegisterPrint'));
@@ -77,6 +79,8 @@ export default function AppRoutes() {
                 { path: 'hotel/activity', element: hotel('/hotel/activity', <Activity />) },
                 { path: 'hotel/import', element: hotel('/hotel/import', <ImportData />) },
                 { path: 'hotel/day-report', element: hotel('/hotel/day-report', <DayReport />) },
+                { path: 'hotel/gst', element: hotel('/hotel/gst', <GstReturns />) },
+                { path: 'hotel/agents', element: hotel('/hotel/agents', <TravelAgents />) },
                 { path: 'hotel/cash', element: hotel(['/hotel/cash', '/hotel/bookings'], <CashDrawer />) },
                 { path: 'hotel/register', element: hotel('/hotel/register', <GuestRegister />) },
                 { path: '*', element: <NotFound /> }

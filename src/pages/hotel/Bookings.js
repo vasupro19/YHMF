@@ -56,7 +56,7 @@ const Bookings = () => {
             { id: 'checkIn', label: 'Arrival', value: (b) => b.checkIn, render: (b) => formatDate(b.checkIn) },
             { id: 'checkOut', label: 'Departure', value: (b) => b.checkOut, render: (b) => formatDate(b.checkOut) },
             { id: 'nights', label: 'Nights', align: 'right', value: (b) => daysBetween(b.checkIn, b.checkOut) },
-            { id: 'source', label: 'Source', value: (b) => BOOKING_SOURCES.find((s) => s.id === b.source)?.name || b.source },
+            { id: 'source', label: 'Source', value: (b) => b.agencyName || BOOKING_SOURCES.find((s) => s.id === b.source)?.name || b.source },
             { id: 'status', label: 'Status', value: (b) => b.status, render: (b) => <BookingChip status={b.status} /> },
             { id: 'total', label: 'Total', value: (b) => b.total, render: (b) => inr(b.total), align: 'right' },
             {

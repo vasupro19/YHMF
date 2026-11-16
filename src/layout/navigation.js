@@ -17,6 +17,8 @@ import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined';
 import AssignmentIndOutlinedIcon from '@mui/icons-material/AssignmentIndOutlined';
 import PointOfSaleOutlinedIcon from '@mui/icons-material/PointOfSaleOutlined';
 import TodayOutlinedIcon from '@mui/icons-material/TodayOutlined';
+import RequestQuoteOutlinedIcon from '@mui/icons-material/RequestQuoteOutlined';
+import HandshakeOutlinedIcon from '@mui/icons-material/HandshakeOutlined';
 
 // the backend stores the menu (label/url/group); the look of each entry lives here
 export const ICONS = {
@@ -35,6 +37,8 @@ export const ICONS = {
     '/hotel/register': AssignmentIndOutlinedIcon,
     '/hotel/cash': PointOfSaleOutlinedIcon,
     '/hotel/day-report': TodayOutlinedIcon,
+    '/hotel/gst': RequestQuoteOutlinedIcon,
+    '/hotel/agents': HandshakeOutlinedIcon,
     '/master/role': AdminPanelSettingsOutlinedIcon,
     '/master/user': PeopleAltOutlinedIcon,
     '/master/client': HotelOutlinedIcon
@@ -61,6 +65,8 @@ export const TITLES = {
     '/hotel/register': 'Guest register',
     '/hotel/cash': 'Cash drawer',
     '/hotel/day-report': 'Day report',
+    '/hotel/gst': 'GST returns',
+    '/hotel/agents': 'Travel agents',
     '/master/role': 'Roles',
     '/master/user': 'Users',
     '/master/client': 'Clients'
