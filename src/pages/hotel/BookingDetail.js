@@ -20,6 +20,8 @@ import BookingDialog from 'components/BookingDialog';
 import GuestDetailsDrawer from 'components/GuestDetailsDrawer';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import HowToRegOutlinedIcon from '@mui/icons-material/HowToRegOutlined';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import { reserveWhatsAppTab } from 'utils/whatsapp';
 import ConfirmDialog from 'components/ConfirmDialog';
 import FormDialog from 'components/FormDialog';
 import Panel from 'components/Panel';
@@ -102,6 +104,9 @@ const BookingDetail = () => {
     const [justCreated, setJustCreated] = useState(Boolean(location.state?.created));
     const [confirm, setConfirm] = useState(null); // { action, title, text, label, color }
     const [guestOpen, setGuestOpen] = useState(null); // 'edit' | 'checkin'
+    const [sharePayment, setSharePayment] = useState(null);
+    const [lastPayment, setLastPayment] = useState(null); // shown after a payment is recorded
+    const [justConfirmed, setJustConfirmed] = useState(false);
     const b = q.data;
 
     if (!b)
@@ -125,17 +130,40 @@ const BookingDetail = () => {
             const updated = await fn();
             q.setData(updated);
             if (msg) toast.success(msg);
+            return true;
         } catch (e) {
             toast.error(e.message);
+            return false;
         }
     };
     const act = (action, msg) => run(() => api.bookings.status(id, action), msg);
+
+    // one click: WhatsApp Web opens on the guest's chat with the message typed in
+    const quickSend = async (kind, paymentId) => {
+        if (!b.customerPhone) {
+            toast.error('This guest has no phone number saved. Add it from "Edit guest details".');
+            return;
+        }
+        const tab = reserveWhatsAppTab();
+        try {
+            const info = await api.bookings.share(b.id, false, paymentId);
+            const text = info.messages[kind].replace(/\{\{BILL_LINK\}\}/g, `${window.location.origin}/b/${info.token}`).replace(/\{\{CHECKIN_LINK\}\}/g, `${window.location.origin}/c/${info.token}`);
+            tab.go(info.phone, text);
+        } catch (e) {
+            tab.cancel();
+            toast.error(e.message);
+        }
+    };
+    const editAndSend = (kind, paymentId) => {
+        setSharePayment(paymentId || null);
+        setShareKind(kind);
+    };
 
     // one ledger: room nights and extras on the debit side, payments on the credit side
     const ledger = [
         ...bill.roomLines.map((l, i) => ({ key: `n${i}`, date: l.date, order: 0, text: `Room ${b.roomNumber} · ${b.roomTypeName}`, detail: bill.discount > 0 ? `Rate ${inr(l.unitPrice)}, less discount` : 'Room night', rate: l.taxable, gst: l.tax, gstPercent: l.gstPercent, debit: r2(l.taxable + l.tax) })),
         ...bill.chargeLines.map((c) => ({ key: `c${c.id}`, date: c.date, order: 1, text: c.description, detail: `${CHARGE_CATEGORIES.find((x) => x.id === c.category)?.name || c.category} · ${c.quantity} × ${inr(c.unitPrice)}`, rate: c.amount, gst: c.tax, gstPercent: c.gstPercent, debit: r2(c.amount + c.tax), remove: () => run(() => api.bookings.removeCharge(id, c.id), 'Charge removed') })),
-        ...b.payments.map((p) => ({ key: `p${p.id}`, date: String(p.paidAt).slice(0, 10), order: 2, text: `Payment · ${PAY_METHODS.find((m) => m.id === p.method)?.name || p.method}`, detail: [p.reference, p.note].filter(Boolean).join(' · '), credit: p.amount, remove: () => run(() => api.bookings.removePayment(id, p.id), 'Payment removed') }))
+        ...b.payments.map((p) => ({ key: `p${p.id}`, date: String(p.paidAt).slice(0, 10), order: 2, text: `Payment · ${PAY_METHODS.find((m) => m.id === p.method)?.name || p.method}`, detail: [p.reference, p.note].filter(Boolean).join(' · '), credit: p.amount, receipt: () => quickSend('receipt', p.id), remove: () => run(() => api.bookings.removePayment(id, p.id), 'Payment removed') }))
     ].sort((x, y) => (x.date === y.date ? x.order - y.order : x.date < y.date ? -1 : 1));
     let running = 0;
     ledger.forEach((l) => {
@@ -148,7 +176,7 @@ const BookingDetail = () => {
 
     const primary =
         b.status === 'PENDING' ? (
-            <Button variant="contained" onClick={() => act('confirm', 'Booking confirmed')}>Confirm booking</Button>
+            <Button variant="contained" onClick={async () => { if (await act('confirm', 'Booking confirmed')) setJustConfirmed(true); }}>Confirm booking</Button>
         ) : b.status === 'CONFIRMED' ? (
             <Tooltip title={arrivalOk ? '' : `Arrival is on ${formatDate(b.checkIn)}`}>
                 <span><Button variant="contained" disabled={!arrivalOk} onClick={() => (b.registerMissing?.length ? setGuestOpen('checkin') : act('checkin', 'Guest checked in'))}>Check in</Button></span>
@@ -205,8 +233,43 @@ const BookingDetail = () => {
             <StatusTrack status={b.status} />
 
             {justCreated && (
-                <Alert severity="success" sx={{ mb: 2 }} onClose={() => setJustCreated(false)} action={<Button color="inherit" size="small" onClick={() => { setJustCreated(false); setShareKind('confirmation'); }}>Send confirmation</Button>}>
-                    Booking created. Send the guest their confirmation on WhatsApp or email?
+                <Alert
+                    severity="success"
+                    sx={{ mb: 2 }}
+                    onClose={() => setJustCreated(false)}
+                    action={
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                            <Button color="inherit" size="small" startIcon={<WhatsAppIcon />} onClick={() => { setJustCreated(false); quickSend(b.status === 'PENDING' ? 'reminder' : 'confirmation'); }}>WhatsApp</Button>
+                            <Button color="inherit" size="small" onClick={() => { setJustCreated(false); editAndSend('confirmation'); }}>Edit first</Button>
+                        </Box>
+                    }
+                >
+                    Booking created. Send the guest their confirmation?
+                </Alert>
+            )}
+            {justConfirmed && (
+                <Alert
+                    severity="success"
+                    sx={{ mb: 2 }}
+                    onClose={() => setJustConfirmed(false)}
+                    action={<Button color="inherit" size="small" startIcon={<WhatsAppIcon />} onClick={() => { setJustConfirmed(false); quickSend('confirmation'); }}>Send confirmation</Button>}
+                >
+                    Booking confirmed. Send the guest their confirmation on WhatsApp?
+                </Alert>
+            )}
+            {lastPayment && (
+                <Alert
+                    severity="success"
+                    sx={{ mb: 2 }}
+                    onClose={() => setLastPayment(null)}
+                    action={
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                            <Button color="inherit" size="small" startIcon={<WhatsAppIcon />} onClick={() => { const p = lastPayment; setLastPayment(null); quickSend('receipt', p.id); }}>Send receipt</Button>
+                            <Button color="inherit" size="small" onClick={() => { const p = lastPayment; setLastPayment(null); editAndSend('receipt', p.id); }}>Edit first</Button>
+                        </Box>
+                    }
+                >
+                    {inr(lastPayment.amount)} received by {PAY_METHODS.find((m) => m.id === lastPayment.method)?.name || lastPayment.method}. Send the guest a receipt?
                 </Alert>
             )}
             {b.status === 'CHECKED_OUT' && bill.balance > 0 && (
@@ -275,7 +338,14 @@ const BookingDetail = () => {
                                             <TableCell align="right">{l.debit ? inr(l.debit) : ''}</TableCell>
                                             <TableCell align="right" sx={{ color: T.success }}>{l.credit ? inr(l.credit) : ''}</TableCell>
                                             <TableCell align="right" sx={{ fontWeight: 600 }}>{inr(l.balance)}</TableCell>
-                                            <TableCell align="right" sx={{ py: 0 }}>
+                                            <TableCell align="right" sx={{ py: 0, whiteSpace: 'nowrap' }}>
+                                                {l.receipt && (
+                                                    <Tooltip title="Send receipt on WhatsApp">
+                                                        <IconButton size="small" aria-label="Send receipt on WhatsApp" onClick={l.receipt} sx={{ color: T.ink3, '&:hover': { color: '#1F8F4E' } }}>
+                                                            <WhatsAppIcon sx={{ fontSize: 17 }} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                )}
                                                 {l.remove && !locked && (
                                                     <IconButton size="small" aria-label={`Remove ${l.text}`} onClick={l.remove} sx={{ color: T.ink3, '&:hover': { color: T.error } }}>
                                                         <DeleteOutlineIcon sx={{ fontSize: 17 }} />
@@ -342,7 +412,7 @@ const BookingDetail = () => {
                 </Grid>
             </Grid>
 
-            <ShareDialog open={Boolean(shareKind)} booking={b} defaultKind={shareKind || 'confirmation'} onClose={() => setShareKind(null)} />
+            <ShareDialog open={Boolean(shareKind)} booking={b} defaultKind={shareKind || 'confirmation'} paymentId={sharePayment} onClose={() => { setShareKind(null); setSharePayment(null); }} />
             <GuestDetailsDrawer
                 open={Boolean(guestOpen)}
                 booking={b}
@@ -384,7 +454,7 @@ const BookingDetail = () => {
                 ]}
                 initialValues={{ amount: Math.max(bill.balance, 0) || '', method: 'CASH' }}
                 validationSchema={paySchema}
-                onSubmit={async (v) => { const u = await api.bookings.addPayment(id, { ...v, amount: Number(v.amount) }); q.setData(u); setPayOpen(false); toast.success('Payment recorded'); }}
+                onSubmit={async (v) => { const u = await api.bookings.addPayment(id, { ...v, amount: Number(v.amount) }); q.setData(u); setPayOpen(false); setLastPayment([...u.payments].sort((x, y) => y.id - x.id)[0] || null); }}
                 onClose={() => setPayOpen(false)}
                 submitLabel="Record payment"
             />

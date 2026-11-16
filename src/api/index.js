@@ -88,8 +88,8 @@ export const hotelApi = (clientId) => {
             addPayment: (id, b) => send('post', `/bookings/${id}/payments`, b).then((r) => r.data),
             removePayment: (id, paymentId) => remove(`/bookings/${id}/payments/${paymentId}`).then((r) => r.data),
             invoice: (id) => get(`/bookings/${id}/invoice`),
-            share: (id, regenerate = false) => send('post', `/bookings/${id}/share`, { regenerate }).then((r) => r.data),
-            email: (id, kind, text) => send('post', `/bookings/${id}/email`, { kind, text }).then((r) => r.message)
+            share: (id, regenerate = false, paymentId) => send('post', `/bookings/${id}/share`, { regenerate, paymentId }).then((r) => r.data),
+            email: (id, kind, text, paymentId) => send('post', `/bookings/${id}/email`, { kind, text, paymentId }).then((r) => r.message)
         },
         staff: { list: () => get('/staff'), save: (id, b) => (id ? send('put', `/staff/${id}`, b) : send('post', '/staff', b)).then((r) => r.message) },
         payroll: { list: (month) => get('/payroll', { month }), pay: (b) => send('post', '/payroll', b).then((r) => r.message), remove: (id) => remove(`/payroll/${id}`).then((r) => r.message) },

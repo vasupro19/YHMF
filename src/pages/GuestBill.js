@@ -156,7 +156,7 @@ const GuestBill = () => {
                             <Typography sx={{ ...label, mb: 0.75 }}>Payments received</Typography>
                             {b.payments.map((p, i) => (
                                 <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.6, borderBottom: `1px solid ${LINE}`, fontSize: 12.5, '&:last-child': { borderBottom: 0 } }}>
-                                    <span>{new Date(p.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} · {PAY_METHODS.find((m) => m.id === p.method)?.name || p.method}</span>
+                                    <span>{new Date(p.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} · {PAY_METHODS.find((m) => m.id === p.method)?.name || p.method}{p.receiptNo ? ` · Receipt ${p.receiptNo}` : ''}</span>
                                     <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{inr(p.amount)}</span>
                                 </Box>
                             ))}

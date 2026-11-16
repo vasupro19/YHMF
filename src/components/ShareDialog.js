@@ -9,19 +9,21 @@ import useHotel from 'hooks/useHotel';
 import { useToast } from 'context/Toast';
 import { inr, upiLink } from 'utils/format';
 import UpiQr from './UpiQr';
+import { openWhatsApp } from 'utils/whatsapp';
 import { T } from './Theme';
 
 const KINDS = [
     ['confirmation', 'Booking confirmation'],
     ['reminder', 'Arrival reminder'],
     ['payment', 'Payment request'],
+    ['receipt', 'Payment receipt'],
     ['precheckin', 'Online check-in'],
     ['bill', 'Bill'],
     ['thanks', 'Thank you']
 ];
 
 // pick a message for the guest, edit it, then send it on WhatsApp or by email, or copy it
-const ShareDialog = ({ open, booking, defaultKind = 'confirmation', onClose }) => {
+const ShareDialog = ({ open, booking, defaultKind = 'confirmation', paymentId, onClose }) => {
     const { api } = useHotel();
     const toast = useToast();
     const [info, setInfo] = useState(null);
@@ -35,7 +37,7 @@ const ShareDialog = ({ open, booking, defaultKind = 'confirmation', onClose }) =
         setLoading(true);
         setError('');
         try {
-            const data = await api.bookings.share(booking.id, regenerate);
+            const data = await api.bookings.share(booking.id, regenerate, paymentId);
             setInfo(data);
             if (regenerate) toast.success('New link created. The old one no longer works.');
         } catch (e) {
@@ -52,7 +54,7 @@ const ShareDialog = ({ open, booking, defaultKind = 'confirmation', onClose }) =
             load();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, booking?.id]);
+    }, [open, booking?.id, paymentId]);
 
     const link = info ? `${window.location.origin}/b/${info.token}` : '';
     const checkinLink = info ? `${window.location.origin}/c/${info.token}` : '';
@@ -68,12 +70,12 @@ const ShareDialog = ({ open, booking, defaultKind = 'confirmation', onClose }) =
         }
     };
 
-    const whatsapp = () => window.open(`https://wa.me/${info.phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+    const whatsapp = () => openWhatsApp(info.phone, text);
 
     const email = async () => {
         setSending(true);
         try {
-            toast.info(await api.bookings.email(booking.id, kind, text.replace(checkinLink, '{{CHECKIN_LINK}}').replace(link, '{{BILL_LINK}}')));
+            toast.info(await api.bookings.email(booking.id, kind, text.replace(checkinLink, '{{CHECKIN_LINK}}').replace(link, '{{BILL_LINK}}'), paymentId));
         } catch (e) {
             toast.error(e.message);
         } finally {
@@ -99,7 +101,7 @@ const ShareDialog = ({ open, booking, defaultKind = 'confirmation', onClose }) =
                     <>
                         <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: T.ink3, mb: 1 }}>Message</Typography>
                         <ToggleButtonGroup size="small" exclusive value={kind} onChange={(_, v) => v && setKind(v)} aria-label="Message type" sx={{ mb: 1.5, flexWrap: 'wrap', '& .MuiToggleButton-root': { borderRadius: '6px !important', border: `1px solid ${T.line2} !important`, mr: 0.75, mb: 0.75 } }}>
-                            {KINDS.map(([id, label]) => <ToggleButton key={id} value={id}>{label}</ToggleButton>)}
+                            {KINDS.filter(([id]) => id !== 'receipt' || booking?.payments?.length).map(([id, label]) => <ToggleButton key={id} value={id}>{label}</ToggleButton>)}
                         </ToggleButtonGroup>
                         <TextField inputProps={{ 'aria-label': 'Message', style: { fontSize: 13, lineHeight: 1.55 } }} value={text} onChange={(e) => setText(e.target.value)} multiline minRows={8} maxRows={14} helperText="You can edit the message before sending." />
 
