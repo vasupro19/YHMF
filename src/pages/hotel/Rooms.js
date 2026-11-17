@@ -15,7 +15,7 @@ import { HousekeepingChip, Pill } from 'components/StatusChip';
 import { KpiStrip } from 'components/Panel';
 import { T } from 'components/Theme';
 import { HK_STATUSES } from 'utils/constants';
-import { formatDate } from 'utils/format';
+import { formatDate, todayISO } from 'utils/format';
 
 const schema = Yup.object({
     roomNumber: Yup.string().trim().required('Room number is required'),
@@ -52,7 +52,11 @@ const Rooms = () => {
                 r.guestName ? (
                     <Box>
                         <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{r.guestName}</Typography>
-                        <Typography sx={{ fontSize: 12, color: T.ink3 }}>In house until {formatDate(r.guestCheckOut)}</Typography>
+                        {String(r.guestCheckOut).slice(0, 10) < todayISO() ? (
+                            <Pill tone="error" label={`Check-out overdue (was ${formatDate(r.guestCheckOut)})`} />
+                        ) : (
+                            <Typography sx={{ fontSize: 12, color: T.ink3 }}>In house until {formatDate(r.guestCheckOut)}</Typography>
+                        )}
                     </Box>
                 ) : r.arrivingToday ? (
                     <Pill tone="info" label="Arriving today" />
