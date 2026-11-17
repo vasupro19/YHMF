@@ -1,7 +1,9 @@
 export const APP_NAME = 'YHM';
 export const APP_TAGLINE = 'Your Hotel Manager';
 
-export const API_BASE = process.env.REACT_APP_BACKEND_SERVER || 'http://localhost:1410/v1/';
+// without REACT_APP_BACKEND_SERVER, a build talks to the site it is served from (nginx proxies /v1/), and local dev to port 1410
+const LOCAL = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+export const API_BASE = process.env.REACT_APP_BACKEND_SERVER || (LOCAL ? 'http://localhost:1410/v1/' : `${window.location.origin}/v1/`);
 // uploaded files are served by the backend next to /v1
 export const FILE_BASE = API_BASE.replace(/\/v1\/?$/, '');
 
